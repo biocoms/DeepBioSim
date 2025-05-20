@@ -7,3 +7,5 @@ output/
 
 __pychache__/
 *.pyc
+
+.DS_Store
