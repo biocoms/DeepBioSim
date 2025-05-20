@@ -1,0 +1,9 @@
+input/
+*.csv
+
+output/
+*.log
+*.png
+
+__pychache__/
+*.pyc
