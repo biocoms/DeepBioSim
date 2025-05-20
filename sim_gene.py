@@ -7,12 +7,13 @@ from torch.utils.data import TensorDataset, DataLoader
 import torch.optim as optim
 import numpy as np
 from scipy.stats import ttest_ind
+from mks_test import mkstest
+from utils import plot_pca, plot_tsne, plot_umap
 from KDEpy import FFTKDE
+from kde_mcmc import mcmc_sampling
 from vae import VAE, train as train_vae, k_fold_validation_vae
 from iwae import IWAE, train as train_iwae, k_fold_validation_iwae
-from kde_mcmc import mcmc_sampling
-from mks_test import mkstest
-from utils import plot_pca, plot_tsne
+from diffusion import DiffusionModel, train as train_diffusion
 
 import pdb
 
@@ -52,27 +53,39 @@ def process_file(filepath: str):
     )
 
     # ----- Vanilla VAE -----
-    vae = VAE(input_dim, hidden_dim, latent_dim).to(device)
-    opt_vae = optim.Adam(vae.parameters(), lr=learning_rate)
-    train_vae(vae, loader, opt_vae, num_epochs=num_epochs, device=device)
-    vae.eval()
-    with torch.no_grad():
-        z = torch.randn(n_samples, latent_dim, device=device)
-        gen_vae = vae.decode(z).cpu().numpy()
-    plot_pca(data, gen_vae, "VAE", dataset_name)
-    plot_tsne(data, gen_vae, "VAE", dataset_name)
+    # vae = VAE(input_dim, hidden_dim, latent_dim).to(device)
+    # opt_vae = optim.Adam(vae.parameters(), lr=learning_rate)
+    # train_vae(vae, loader, opt_vae, num_epochs=num_epochs, device=device)
+    # vae.eval()
+    # with torch.no_grad():
+    #     z = torch.randn(n_samples, latent_dim, device=device)
+    #     gen_vae = vae.decode(z).cpu().numpy()
+    # plot_pca(data, gen_vae, "VAE", dataset_name)
+    # plot_tsne(data, gen_vae, "VAE", dataset_name)
+    # plot_umap(data, gen_vae, "VAE", dataset_name)
 
     # ----- IWAE -----
-    iwae = IWAE(input_dim, latent_dim, hidden_dim, K).to(device)
-    opt_iwae = optim.Adam(iwae.parameters(), lr=learning_rate)
-    # train and print avg loss per epoch
-    train_iwae(iwae, loader, opt_iwae, num_epochs=num_epochs, device=device)
-    iwae.eval()
+    # iwae = IWAE(input_dim, latent_dim, hidden_dim, K).to(device)
+    # opt_iwae = optim.Adam(iwae.parameters(), lr=learning_rate)
+    # train_iwae(iwae, loader, opt_iwae, num_epochs=num_epochs, device=device)
+    # iwae.eval()
+    # with torch.no_grad():
+    #     z = torch.randn(n_samples, latent_dim, device=device)
+    #     gen_iwae = iwae.sample(n_samples)
+    # plot_pca(data, gen_iwae, "IWAE", dataset_name)
+    # plot_tsne(data, gen_iwae, "IWAE", dataset_name)
+    # plot_umap(data, gen_iwae, "IWAE", dataset_name)
+
+    # ----- Diffusion -----
+    diff = DiffusionModel(input_dim, hidden_dim, timesteps=1000).to(device)
+    opt_diff = torch.optim.Adam(diff.parameters(), lr=1e-3)
+    train_diffusion(diff, loader, opt_diff, num_epochs, device=device)
+    diff.eval()
     with torch.no_grad():
-        z = torch.randn(n_samples, latent_dim, device=device)
-        gen_iwae = iwae.sample(n_samples)
-    plot_pca(data, gen_iwae, "IWAE", dataset_name)
-    plot_tsne(data, gen_iwae, "IWAE", dataset_name)
+        gen_diff = diff.sample(n_samples, device=device)
+    plot_pca(data, gen_diff, "Diffusion", dataset_name)
+    # plot_tsne(data, gen_diff, "Diffusion", dataset_name)
+    # plot_umap(data, gen_diff, "Diffusion", dataset_name)
 
     # ----- KDE-MCMC -----
     # kde = FFTKDE(kernel="gaussian").fit(data)
@@ -115,19 +128,19 @@ def process_file(filepath: str):
     # print(f" MCMC: t={t_mcmc:.3f}, p={p_mcmc:.3e}")
 
     # means (axis=0, less samples)
-    mean_orig = np.mean(data, axis=0)
-    mean_vae = np.mean(gen_vae, axis=0)
-    mean_iwae = np.mean(gen_iwae, axis=0)
+    # mean_orig = np.mean(data, axis=0)
+    # mean_vae = np.mean(gen_vae, axis=0)
+    # mean_iwae = np.mean(gen_iwae, axis=0)
     # mean_mcmc = np.mean(gen_mcmc, axis=0)
 
     # t-tests on means
-    t_mean_vae, p_mean_vae = ttest_ind(mean_orig, mean_vae)
-    t_mean_iwae, p_mean_iwae = ttest_ind(mean_orig, mean_iwae)
+    # t_mean_vae, p_mean_vae = ttest_ind(mean_orig, mean_vae)
+    # t_mean_iwae, p_mean_iwae = ttest_ind(mean_orig, mean_iwae)
     # t_mean_mcmc, p_mean_mcmc = ttest_ind(mean_orig, mean_mcmc)
 
-    print("Mean t-test results:")
-    print(f" VAE:  t={t_mean_vae:.3f}, p={p_mean_vae:.3e}")
-    print(f" IWAE: t={t_mean_iwae:.3f}, p={p_mean_iwae:.3e}")
+    # print("Mean t-test results:")
+    # print(f" VAE:  t={t_mean_vae:.3f}, p={p_mean_vae:.3e}")
+    # print(f" IWAE: t={t_mean_iwae:.3f}, p={p_mean_iwae:.3e}")
     # print(f" MCMC: t={t_mean_mcmc:.3f}, p={p_mean_mcmc:.3e}")
 
     # medians
@@ -163,8 +176,8 @@ def process_file(filepath: str):
 # NOTE TCGA will *not* run on MCMC because of the high dimensionality
 if __name__ == "__main__":
     os.makedirs("./output", exist_ok=True)
-    process_file("./input/ibd.csv")
-    # process_file("./input/vaginal.csv")
+    # process_file("./input/ibd.csv")
+    process_file("./input/vaginal.csv")
     # process_file("./input/momspi16s.csv")
     # process_file("./input/t2d16s.csv")
     # process_file("./input/TCGA_HNSC_rawcount_data_t.csv")

@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE
+from umap import UMAP
 
 
 def plot_pca(orig: np.ndarray, gen: np.ndarray, method_name: str, dataset_name: str):
@@ -48,6 +49,31 @@ def plot_tsne(orig: np.ndarray, gen: np.ndarray, method_name: str, dataset_name:
     plt.savefig(out_path)
     plt.close()
     print(f"Saved t-SNE plot to {out_path}")
+
+
+def plot_umap(orig: np.ndarray, gen: np.ndarray, method_name: str, dataset_name: str):
+    """
+    Generate and save a UMAP scatter plot comparing original and generated samples.
+    Same signature as plot_pca and plot_tsne.
+    """
+
+    combined = np.vstack([orig, gen])
+    reducer = UMAP(n_components=2)
+    emb = reducer.fit_transform(combined)
+    orig_emb = emb[: orig.shape[0]]
+    gen_emb = emb[orig.shape[0] :]
+    plt.figure(figsize=(8, 6))
+    plt.scatter(orig_emb[:, 0], orig_emb[:, 1], s=10, alpha=0.5, label="Original")
+    plt.scatter(gen_emb[:, 0], gen_emb[:, 1], s=10, alpha=0.5, label=method_name)
+    plt.title(f"{dataset_name}: Original vs {method_name} (UMAP)")
+    plt.xlabel("UMAP 1")
+    plt.ylabel("UMAP 2")
+    plt.legend()
+    plt.tight_layout()
+    out_path = f"./output/{dataset_name}_{method_name}_umap.png"
+    plt.savefig(out_path)
+    plt.close()
+    print(f"Saved UMAP plot to {out_path}")
 
 
 def shannon(mat, pseudo=1e-6):
