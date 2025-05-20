@@ -46,7 +46,7 @@ class VAE(nn.Module):
             nn.Linear(hidden_dim // 2, hidden_dim),
             nn.SiLU(),  # Swish activation function
             nn.Linear(hidden_dim, input_dim),
-            # nn.Sigmoid(),  # Uncomment if you want to restrict the output to [0, 1]
+            nn.Softplus(),  # ensure nonnegativity
         )
 
     def encode(self, x, eps: float = 1e-8):

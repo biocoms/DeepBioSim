@@ -8,11 +8,11 @@ import torch.optim as optim
 import numpy as np
 from scipy.stats import ttest_ind
 from KDEpy import FFTKDE
-from vae import VAE as VAE_NonLinear, train as train_vae, k_fold_validation_vae
-from iwae import IWAE, k_fold_validation_iwae
+from vae import VAE, train as train_vae, k_fold_validation_vae
+from iwae import IWAE, train as train_iwae, k_fold_validation_iwae
 from kde_mcmc import mcmc_sampling
 from mks_test import mkstest
-from utils import plot_pca, plot_tsne, svd_reduce, svd_reconstruct
+from utils import plot_pca, plot_tsne, svd_reduce, svd_reconstruct, shannon
 
 import pdb
 
@@ -21,7 +21,7 @@ import pdb
 # --------------------
 latent_dim = 8
 hidden_dim = 64
-num_epochs = 400
+num_epochs = 800
 batch_size = 128
 learning_rate = 1e-3
 K = 20
@@ -51,7 +51,7 @@ def process_file(filepath: str):
     print(f"Loaded reduced data: {n_samples} samples, {input_dim_red} features")
 
     # ----- Vanilla VAE -----
-    vae = VAE_NonLinear(input_dim_red, hidden_dim, latent_dim).to(device)
+    vae = VAE(input_dim_red, hidden_dim, latent_dim).to(device)
     opt_vae = optim.Adam(vae.parameters(), lr=learning_rate)
     train_vae(vae, loader, opt_vae, num_epochs=num_epochs, device=device)
     vae.eval()
@@ -59,29 +59,21 @@ def process_file(filepath: str):
         z = torch.randn(n_samples, latent_dim, device=device)
         gen_vae_red = vae.decode(z).cpu().numpy()
     gen_vae = svd_reconstruct(gen_vae_red, V_red)
-    plot_pca(data, gen_vae, "VAE", dataset_name)
-    plot_tsne(data, gen_vae, "VAE", dataset_name)
+    plot_pca(data.T, gen_vae.T, "VAE", dataset_name)
+    # plot_tsne(data, gen_vae, "VAE", dataset_name)
 
     # ----- IWAE -----
     iwae = IWAE(input_dim_red, latent_dim, hidden_dim, K).to(device)
     opt_iwae = optim.Adam(iwae.parameters(), lr=learning_rate)
-    iwae.train()
-    for epoch in range(num_epochs):
-        epoch_loss = 0
-        for batch in loader:
-            x = batch[0].to(device)
-            opt_iwae.zero_grad()
-            loss = iwae(x)
-            loss.backward()
-            torch.nn.utils.clip_grad_norm_(iwae.parameters(), 5.0)
-            opt_iwae.step()
-            epoch_loss += loss.item() * x.size(0)
+    # train and print avg loss per epoch
+    train_iwae(iwae, loader, opt_iwae, num_epochs=num_epochs, device=device)
     iwae.eval()
     with torch.no_grad():
+        z = torch.randn(n_samples, latent_dim, device=device)
         gen_iwae_red = iwae.sample(n_samples)
     gen_iwae = svd_reconstruct(gen_iwae_red, V_red)
-    plot_pca(data, gen_iwae, "IWAE", dataset_name)
-    plot_tsne(data, gen_iwae, "IWAE", dataset_name)
+    plot_pca(data.T, gen_iwae.T, "IWAE", dataset_name)
+    # plot_tsne(data, gen_iwae, "IWAE", dataset_name)
 
     # ----- KDE-MCMC -----
     # kde = FFTKDE(kernel="gaussian").fit(Z)
@@ -124,10 +116,10 @@ def process_file(filepath: str):
     # print(f" IWAE: t={t_iwae:.3f}, p={p_iwae:.3e}")
     # print(f" MCMC: t={t_mcmc:.3f}, p={p_mcmc:.3e}")
 
-    # means (axis=0, less samples)
-    mean_orig = np.mean(data, axis=0)
-    mean_vae = np.mean(gen_vae, axis=0)
-    mean_iwae = np.mean(gen_iwae, axis=0)
+    # means (axis=1 mean for each gene)
+    # mean_orig = np.mean(data, axis=0)
+    # mean_vae = np.mean(gen_vae, axis=0)
+    # mean_iwae = np.mean(gen_iwae, axis=0)
     # mean_mcmc = np.mean(gen_mcmc, axis=0)
 
     # t-tests on means
@@ -173,8 +165,8 @@ def process_file(filepath: str):
 # NOTE TCGA will *not* run on MCMC because of the high dimensionality
 if __name__ == "__main__":
     os.makedirs("./output", exist_ok=True)
-    process_file("./input/momspi16s.csv")
+    # process_file("./input/momspi16s.csv")
     # process_file("./input/t2d16s.csv")
-    # process_file("./input/ibd.csv")
-    # process_file("./input/vaginal.csv")
+    process_file("./input/ibd.csv")
+    process_file("./input/vaginal.csv")
     # process_file("./input/TCGA_HNSC_rawcount_data_t.csv")

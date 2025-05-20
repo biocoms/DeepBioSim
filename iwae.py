@@ -38,6 +38,7 @@ class IWAE(nn.Module):
             nn.Linear(hidden_dim // 2, hidden_dim),
             nn.SiLU(),
             nn.Linear(hidden_dim, input_dim),
+            nn.Softplus(),  # ensure nonnegativity
         )
 
     def encode(self, x):
@@ -85,6 +86,37 @@ class IWAE(nn.Module):
             n_samples, self.latent_dim, device=next(self.parameters()).device
         )
         return self.decode(z).detach().cpu().numpy()
+
+
+def train(model, data_loader, optimizer, num_epochs=50, device="cpu"):
+    """
+    Train an IWAE model, printing average loss per epoch, analogous to the VAE train function.
+
+    Args:
+        model (torch.nn.Module): IWAE instance.
+        data_loader (DataLoader): DataLoader yielding batches of (x,) tensors.
+        optimizer (torch.optim.Optimizer): Optimizer for model parameters.
+        num_epochs (int): Number of training epochs.
+        device (str or torch.device): Compute device.
+
+    Returns:
+        float: Final epoch's average loss.
+    """
+    model.train()
+    for epoch in range(num_epochs):
+        epoch_loss = 0.0
+        for batch in data_loader:
+            x = batch[0].to(device).float()
+            optimizer.zero_grad()
+            loss = model(x)
+            loss.backward()
+            # Clip gradients to stabilize training
+            torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=5.0)
+            optimizer.step()
+            epoch_loss += loss.item() * x.size(0)
+        avg_loss = epoch_loss / len(data_loader.dataset)
+        print(f"IWAE Epoch {epoch+1}/{num_epochs} - Average Loss: {avg_loss:.4f}")
+    return avg_loss
 
 
 def k_fold_validation_iwae(
