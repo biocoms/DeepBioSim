@@ -138,7 +138,7 @@ def train(model, data_loader, optimizer, num_epochs=50, device="cpu"):
             # Multiply by batch size to sum over samples
             epoch_loss += loss.item() * data.size(0)
         avg_loss = epoch_loss / len(data_loader.dataset)
-        print(f"VAE Epoch {epoch+1}/{num_epochs} - Average Loss: {avg_loss:.4f}")
+        # print(f"VAE Epoch {epoch+1}/{num_epochs} - Average Loss: {avg_loss:.4f}")
     return avg_loss
 
 

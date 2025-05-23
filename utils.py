@@ -4,6 +4,9 @@ import numpy as np
 from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE
 from umap import UMAP
+import os
+
+import pdb
 
 
 def plot_pca(orig: np.ndarray, gen: np.ndarray, method_name: str, dataset_name: str):
@@ -76,10 +79,89 @@ def plot_umap(orig: np.ndarray, gen: np.ndarray, method_name: str, dataset_name:
     print(f"Saved UMAP plot to {out_path}")
 
 
-def shannon(mat, pseudo=1e-6):
-    mat_clipped = np.clip(mat, 0, None) + pseudo
-    probs = mat_clipped / mat_clipped.sum(axis=1, keepdims=True)
-    return -(probs * np.log(probs)).sum(axis=1)
+def plot_violin(
+    H_list: list[np.ndarray],
+    labels: list[str],
+    metric_name: str,
+    dataset_name: str,
+    out_dir: str = "./output",
+):
+    """
+    Plot and save a violin plot of one or more 1D vectors side by side.
+
+    Args:
+        H_list: list of 1D arrays (e.g. [H_orig, H_vae, H_iwae])
+        labels: list of strings, same length as H_list
+        metric_name: name of the metric (e.g. "Shannon Entropy")
+        dataset_name: name of the dataset (e.g. "ibd")
+        out_dir: directory to save output PNG
+    """
+    os.makedirs(out_dir, exist_ok=True)
+
+    fig, ax = plt.subplots(figsize=(6, 4))
+    # positions will be 1,2,3...
+    positions = np.arange(1, len(H_list) + 1)
+
+    # violin plot
+    ax.violinplot(
+        H_list,
+        positions=positions,
+        showmeans=True,
+        showextrema=True,
+        widths=0.7,
+    )
+
+    # add scatter of individual points, jittered horizontally
+    for i, H in enumerate(H_list, start=1):
+        x = np.random.normal(i, 0.04, size=len(H))
+        ax.scatter(x, H, s=8, color="k", alpha=0.1)
+
+    # styling
+    ax.set_xticks(positions)
+    ax.set_xticklabels(labels)
+    ax.set_ylabel(metric_name)
+    ax.set_title(f"{dataset_name}: {metric_name}")
+    ax.axhline(0, color="gray", linewidth=0.8)  # optional baseline
+
+    plt.tight_layout()
+    out_path = os.path.join(
+        out_dir, f"{dataset_name}_{metric_name.replace(' ','_')}_violin.png"
+    )
+    plt.savefig(out_path)
+    plt.close(fig)
+    print(f"Saved violin plot to {out_path}")
+
+
+def shannon(mat):
+    proportions = mat / mat.sum(axis=0, keepdims=True)
+    # replace 0s and nans with 1
+    proportions = np.where(proportions > 0, proportions, 1)  # avoid log(0)
+    return -np.sum(proportions * np.log(proportions), axis=0)
+
+
+def richness(mat: np.ndarray, threshold: float = 0.0) -> np.ndarray:
+    # mat > threshold gives a boolean array; sum over features axis
+    return np.sum(mat > threshold, axis=0)
+
+
+def save_generated_samples(
+    gen_samples: np.ndarray,
+    method_name: str,
+    dataset_name: str,
+):
+    """
+    Save a generated‐samples matrix to a .npy file.
+
+    Args:
+        gen_samples: array of shape (n_samples, n_features)
+        method_name: label for the method (e.g. "VAE", "IWAE", "MCMC")
+        dataset_name: dataset identifier (e.g. "ibd")
+        out_dir: where to write the file
+    """
+    filename = f"{dataset_name}_{method_name}_samples.npy"
+    path = f"./output/{filename}"
+    np.save(path, gen_samples)
+    print(f"Saved generated samples to {path}")
 
 
 def svd_reduce(X: np.ndarray, max_fraction: float = 0.8):
