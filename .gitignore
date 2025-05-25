@@ -4,6 +4,10 @@ input/
 output/
 *.log
 *.png
+*.npy
+
+gen_ms/
+*.csv
 
 __pychache__/
 *.pyc

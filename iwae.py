@@ -115,7 +115,7 @@ def train(model, data_loader, optimizer, num_epochs=50, device="cpu"):
             optimizer.step()
             epoch_loss += loss.item() * x.size(0)
         avg_loss = epoch_loss / len(data_loader.dataset)
-        # print(f"IWAE Epoch {epoch+1}/{num_epochs} - Average Loss: {avg_loss:.4f}")
+        print(f"IWAE Epoch {epoch+1}/{num_epochs} - Average Loss: {avg_loss:.4f}")
     return avg_loss
 
 
