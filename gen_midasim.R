@@ -12,6 +12,7 @@ input_name  <- tools::file_path_sans_ext(basename(input_file))
 # 3. Read it in (assuming counts with rownames in col 1)
 count_data <- read.csv(input_file, row.names = 1, check.names = FALSE)
 
+start_time <- Sys.time()
 # 4. Run the MIDASim workflow
 ds_setup    <- MIDASim.setup(count_data,
                              mode        = "nonparametric",
@@ -23,6 +24,10 @@ ds_modified <- MIDASim.modify(ds_setup,
                               sample.1.prop   = NULL,
                               taxa.1.prop     = NULL)
 simulation  <- MIDASim(ds_modified)
+
+end_time <- Sys.time()
+
+print(end_time-start_time)
 
 # 5. Prepare your output folder
 output_folder <- "gen_ms"

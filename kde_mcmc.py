@@ -42,6 +42,32 @@ def grad_log_density(q, data, bandwidth):
     return (w[:, None] * diff).sum(axis=0) / (bandwidth**2 * sum_w)
 
 
+def kde_sampling(
+    data: np.ndarray,
+    bandwidth: float,
+    num_samples: int = 1000,
+):
+    """
+    Direct sampling from KDE via mixture-of-Gaussians: pick random data points
+    uniformly, then add Gaussian noise with stdev = bandwidth.
+
+    Args:
+        data: array of shape (n_samples, d)
+        bandwidth: scalar bandwidth h for Gaussian kernel
+        num_samples: how many samples to generate
+
+    Returns:
+        samples: array of shape (num_samples, d)
+    """
+    n, d = data.shape
+    # choose random indices
+    idx = np.random.randint(0, n, size=num_samples)
+    # add Gaussian noise centered at each chosen point
+    noise = np.random.randn(num_samples, d) * bandwidth
+    samples = data[idx] + noise
+    return samples
+
+
 def mcmc_sampling(
     initial_point,
     data,

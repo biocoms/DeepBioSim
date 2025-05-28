@@ -58,11 +58,11 @@ class DiffusionModel(nn.Module):
         t_norm = t.float() / (self.timesteps - 1)
         inp = torch.cat([x_t, t_norm.unsqueeze(-1)], dim=1)
         pred_noise = self.net(inp)
-        if torch.rand(1).item() < 0.05:
-            print(
-                f"[forward-debug] noise std={noise.std().item():.4f}, "
-                f"pred_noise std={pred_noise.std().item():.4f}"
-            )
+        # if torch.rand(1).item() < 0.05:
+        #     print(
+        #         f"[forward-debug] noise std={noise.std().item():.4f}, "
+        #         f"pred_noise std={pred_noise.std().item():.4f}"
+        #     )
         return nn.functional.mse_loss(pred_noise, noise)
 
     def sample(self, n_samples, device):
