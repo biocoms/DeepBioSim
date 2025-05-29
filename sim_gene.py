@@ -186,8 +186,8 @@ def process_file(filepath: str):
 # NOTE TCGA will *not* run on MCMC because of the high dimensionality
 if __name__ == "__main__":
     os.makedirs("./output", exist_ok=True)
-    # process_file("./input/ibd.csv")
-    # process_file("./input/momspi16s.csv")
+    process_file("./input/ibd.csv")
+    process_file("./input/momspi16s.csv")
     process_file("./input/TCGA_HNSC_rawcount_data_t.csv")
     process_file("./input/gene_MTB_healthy_cleaned_t.csv")
     process_file("./input/gene_MTB_caries_cleaned_t.csv")
