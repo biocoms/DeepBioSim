@@ -13,3 +13,5 @@ __pychache__/
 *.pyc
 
 .DS_Store
+
+run_sim.job
