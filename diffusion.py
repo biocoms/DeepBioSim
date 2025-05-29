@@ -58,11 +58,6 @@ class DiffusionModel(nn.Module):
         t_norm = t.float() / (self.timesteps - 1)
         inp = torch.cat([x_t, t_norm.unsqueeze(-1)], dim=1)
         pred_noise = self.net(inp)
-        # if torch.rand(1).item() < 0.05:
-        #     print(
-        #         f"[forward-debug] noise std={noise.std().item():.4f}, "
-        #         f"pred_noise std={pred_noise.std().item():.4f}"
-        #     )
         return nn.functional.mse_loss(pred_noise, noise)
 
     def sample(self, n_samples, device):
@@ -76,11 +71,11 @@ class DiffusionModel(nn.Module):
                 sqrt_omb_t = torch.sqrt(1 - alpha_bar_t)
                 sigma = torch.sqrt(beta_t)
                 ratio = beta_t / (sqrt_omb_t + 1e-8)
-                print(
-                    f"[sample-debug] t={t:4d} | beta={beta_t:.3e}, "
-                    f"ᾱ={alpha_bar_t:.3e}, √α={sqrt_alpha_t:.3f}, "
-                    f"√(1−ᾱ)={sqrt_omb_t:.3f}, σ={sigma:.3e}, ratio={ratio:.3e}"
-                )
+                # print(
+                #     f"[sample-debug] t={t:4d} | beta={beta_t:.3e}, "
+                #     f"ᾱ={alpha_bar_t:.3e}, √α={sqrt_alpha_t:.3f}, "
+                #     f"√(1−ᾱ)={sqrt_omb_t:.3f}, σ={sigma:.3e}, ratio={ratio:.3e}"
+                # )
             # Network input
             t_batch = torch.full((n_samples,), t, device=device, dtype=torch.long)
             t_norm = t_batch.float() / (self.timesteps - 1)
@@ -88,30 +83,30 @@ class DiffusionModel(nn.Module):
             eps_pred = self.net(inp)
             # eps_pred = torch.clamp(eps_pred, -1.0, 1.0)
             # debug at key timesteps
-            if t % (self.timesteps // 5) == 0 or t < 3:
-                print(
-                    f"[sample] t={t}: eps_pred mean={eps_pred.mean().item():.4f}, std={eps_pred.std().item():.4f}"
-                )
+            # if t % (self.timesteps // 5) == 0 or t < 3:
+            #     print(
+            #         f"[sample] t={t}: eps_pred mean={eps_pred.mean().item():.4f}, std={eps_pred.std().item():.4f}"
+            #     )
             # Compute posterior mean via DDPM formula
             sqrt_alpha_t = torch.sqrt(alpha_t)
             sqrt_one_minus_ab = torch.sqrt(1 - alpha_bar_t)
             # (x_t - beta_t/√(1-ᾱ_t) * ε) / √α_t
             mean = (x - (beta_t / sqrt_one_minus_ab) * eps_pred) / sqrt_alpha_t
 
-            if torch.isnan(mean).any():
-                print(f"[sample] NaNs in mean at t={t}, 1-ᾱ_t={1-alpha_bar_t:.2e}")
+            # if torch.isnan(mean).any():
+            #     print(f"[sample] NaNs in mean at t={t}, 1-ᾱ_t={1-alpha_bar_t:.2e}")
 
             if t > 0:
                 noise = torch.randn_like(x)
                 sigma = torch.sqrt(beta_t)
                 x = mean + sigma * noise
-                if t % (self.timesteps // 5) == 0 or t < 3:
-                    print(
-                        f"[sample] t={t}: post step x mean={x.mean().item():.4f}, std={x.std().item():.4f}"
-                    )
+                # if t % (self.timesteps // 5) == 0 or t < 3:
+                #     print(
+                #         f"[sample] t={t}: post step x mean={x.mean().item():.4f}, std={x.std().item():.4f}"
+                #     )
             else:
                 x = mean
-        print(f"[sample] final x: mean={x.mean().item():.4f}, std={x.std().item():.4f}")
+        # print(f"[sample] final x: mean={x.mean().item():.4f}, std={x.std().item():.4f}")
         return x.cpu().numpy()
 
 
