@@ -27,7 +27,27 @@ random_seed = 42
 
 torch.manual_seed(random_seed)
 np.random.seed(random_seed)
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+
+def get_device():
+    """
+    Determines the available device (CUDA or MPS) for computation.
+    Returns:
+      torch.device: The device to use (CUDA, MPS, or CPU).
+    """
+    if torch.cuda.is_available():
+        device = torch.device("cuda")
+        print("Using CUDA")
+    elif torch.backends.mps.is_available():
+        device = torch.device("mps")
+        print("Using MPS")
+    else:
+        device = torch.device("cpu")
+        print("Using CPU")
+    return device
+
+
+device = get_device()
 
 
 def process_file(filepath: str):
