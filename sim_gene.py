@@ -14,6 +14,10 @@ from diffusion import DiffusionModel, train as train_diffusion
 
 import pdb
 
+import warnings
+
+warnings.filterwarnings("ignore")  # Ignore all warnings
+
 # --------------------
 # Configuration
 # --------------------
@@ -59,66 +63,66 @@ def process_file(filepath: str):
     data = df.values.T  # NOTE: p_genes * n_samples
     data = np.log1p(data)
     n_samples, input_dim = data.shape
-    print(f"Loaded data: {n_samples} samples, {input_dim} features")
+    # print(f"Loaded data: {n_samples} samples, {input_dim} features")
 
-    loader = DataLoader(
-        TensorDataset(torch.from_numpy(data).float()),
-        batch_size=batch_size,
-        shuffle=True,
-    )
+    # loader = DataLoader(
+    #     TensorDataset(torch.from_numpy(data).float()),
+    #     batch_size=batch_size,
+    #     shuffle=True,
+    # )
 
     data = np.round(data)
 
     # ----- Vanilla VAE -----
-    vae_start_time = time.perf_counter()
-    vae = VAE(input_dim, hidden_dim, latent_dim).to(device)
-    opt_vae = optim.Adam(vae.parameters(), lr=learning_rate)
-    train_vae(vae, loader, opt_vae, num_epochs=num_epochs, device=device)
-    vae.eval()
-    with torch.no_grad():
-        z = torch.randn(n_samples, latent_dim, device=device)
-        gen_vae = vae.decode(z).cpu().numpy()
-    gen_vae = np.round(gen_vae)
-    save_generated_samples(gen_vae, "VAE", dataset_name)
-    # gen_vae = np.load(f"./output/{dataset_name}_VAE_samples.npy")
-    vae_end_time = time.perf_counter()
-    print(f"VAE running time: {vae_end_time - vae_start_time:.4f} seconds")
+    # vae_start_time = time.perf_counter()
+    # vae = VAE(input_dim, hidden_dim, latent_dim).to(device)
+    # opt_vae = optim.Adam(vae.parameters(), lr=learning_rate)
+    # train_vae(vae, loader, opt_vae, num_epochs=num_epochs, device=device)
+    # vae.eval()
+    # with torch.no_grad():
+    #     z = torch.randn(n_samples, latent_dim, device=device)
+    #     gen_vae = vae.decode(z).cpu().numpy()
+    # gen_vae = np.round(gen_vae)
+    # save_generated_samples(gen_vae, "VAE", dataset_name)
+    gen_vae = np.load(f"./output/{dataset_name}_VAE_samples.npy")
+    # vae_end_time = time.perf_counter()
+    # print(f"VAE running time: {vae_end_time - vae_start_time:.4f} seconds")
 
     plot_pca(data, gen_vae, "VAE", dataset_name)
     plot_tsne(data, gen_vae, "VAE", dataset_name)
     plot_umap(data, gen_vae, "VAE", dataset_name)
 
     # ----- IWAE -----
-    iwae_start_time = time.perf_counter()
-    iwae = IWAE(input_dim, latent_dim, hidden_dim, K).to(device)
-    opt_iwae = optim.Adam(iwae.parameters(), lr=learning_rate)
-    train_iwae(iwae, loader, opt_iwae, num_epochs=num_epochs, device=device)
-    iwae.eval()
-    with torch.no_grad():
-        z = torch.randn(n_samples, latent_dim, device=device)
-        gen_iwae = iwae.sample(n_samples)
-    gen_iwae = np.round(gen_iwae)
-    save_generated_samples(gen_iwae, "IWAE", dataset_name)
-    # gen_iwae = np.load(f"./output/{dataset_name}_IWAE_samples.npy")
-    iwae_end_time = time.perf_counter()
-    print(f"IWAE running time: {iwae_end_time - iwae_start_time:.4f} seconds")
+    # iwae_start_time = time.perf_counter()
+    # iwae = IWAE(input_dim, latent_dim, hidden_dim, K).to(device)
+    # opt_iwae = optim.Adam(iwae.parameters(), lr=learning_rate)
+    # train_iwae(iwae, loader, opt_iwae, num_epochs=num_epochs, device=device)
+    # iwae.eval()
+    # with torch.no_grad():
+    #     z = torch.randn(n_samples, latent_dim, device=device)
+    #     gen_iwae = iwae.sample(n_samples)
+    # gen_iwae = np.round(gen_iwae)
+    # save_generated_samples(gen_iwae, "IWAE", dataset_name)
+    gen_iwae = np.load(f"./output/{dataset_name}_IWAE_samples.npy")
+    # iwae_end_time = time.perf_counter()
+    # print(f"IWAE running time: {iwae_end_time - iwae_start_time:.4f} seconds")
 
     plot_pca(data, gen_iwae, "IWAE", dataset_name)
     plot_tsne(data, gen_iwae, "IWAE", dataset_name)
     plot_umap(data, gen_iwae, "IWAE", dataset_name)
 
     # ----- Diffusion -----
-    diff_start_time = time.perf_counter()
-    diff = DiffusionModel(input_dim, hidden_dim, timesteps=3000).to(device)
-    opt_diff = torch.optim.Adam(diff.parameters(), lr=1e-3)
-    train_diffusion(diff, loader, opt_diff, num_epochs, device=device)
-    diff.eval()
-    with torch.no_grad():
-        gen_diff = diff.sample(n_samples, device=device)
-    save_generated_samples(gen_diff, "diffusion", dataset_name)
-    # gen_diff = np.load(f"./output/{dataset_name}_diffusion_samples.npy")
-    diff_end_time = time.perf_counter()
-    print(f"Diffusion running time: {diff_end_time - diff_start_time:.4f} seconds")
+    # diff_start_time = time.perf_counter()
+    # diff = DiffusionModel(input_dim, hidden_dim, timesteps=3000).to(device)
+    # opt_diff = torch.optim.Adam(diff.parameters(), lr=1e-3)
+    # train_diffusion(diff, loader, opt_diff, num_epochs, device=device)
+    # diff.eval()
+    # with torch.no_grad():
+    #     gen_diff = diff.sample(n_samples, device=device)
+    # save_generated_samples(gen_diff, "diffusion", dataset_name)
+    gen_diff = np.load(f"./output/{dataset_name}_diffusion_samples.npy")
+    # diff_end_time = time.perf_counter()
+    # print(f"Diffusion running time: {diff_end_time - diff_start_time:.4f} seconds")
 
     plot_pca(data, gen_diff, "diffusion", dataset_name)
     plot_tsne(data, gen_diff, "diffusion", dataset_name)
@@ -126,15 +130,16 @@ def process_file(filepath: str):
 
     # ----- KDE -----
     if input_dim <= 10:
-        kde_start_time = time.perf_counter()
-        kde = FFTKDE(kernel="gaussian").fit(data)
-        bw = kde.bw
-        # direct mixture sampling from KDE
-        gen_kde = kde_sampling(data, bw, num_samples=n_samples)
-        save_generated_samples(gen_kde, "KDE", dataset_name)
-        # gen_kde = np.load(f"./output/{dataset_name}_KDE_samples.npy")
-        kde_end_time = time.perf_counter()
-        print(f"KDE running time: {kde_end_time - kde_start_time:.4f} seconds")
+        # kde_start_time = time.perf_counter()
+        # kde = FFTKDE(kernel="gaussian").fit(data)
+        # bw = kde.bw
+        # # direct mixture sampling from KDE
+        # gen_kde = kde_sampling(data, bw, num_samples=n_samples)
+        # save_generated_samples(gen_kde, "KDE", dataset_name)
+        gen_kde = np.load(f"./output/{dataset_name}_KDE_samples.npy")
+        # kde_end_time = time.perf_counter()
+        # print(f"KDE running time: {kde_end_time - kde_start_time:.4f} seconds")
+
         plot_pca(data, gen_kde, "KDE", dataset_name)
         plot_tsne(data, gen_kde, "KDE", dataset_name)
         plot_umap(data, gen_kde, "KDE", dataset_name)

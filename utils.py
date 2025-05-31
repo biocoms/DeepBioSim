@@ -120,7 +120,7 @@ def plot_violin(
     ax.set_xticks(positions)
     ax.set_xticklabels(labels)
     ax.set_ylabel(metric_name)
-    ax.set_title(f"{dataset_name}: {metric_name}")
+    # ax.set_title(f"{dataset_name}: {metric_name}")
     ax.axhline(0, color="gray", linewidth=0.8)  # optional baseline
 
     plt.tight_layout()
