@@ -1,4 +1,4 @@
-# comp_ds.py
+# sim_gene.py
 import os, time
 import pandas as pd
 import torch
@@ -63,13 +63,13 @@ def process_file(filepath: str):
     data = df.values.T  # NOTE: p_genes * n_samples
     data = np.log1p(data)
     n_samples, input_dim = data.shape
-    # print(f"Loaded data: {n_samples} samples, {input_dim} features")
+    print(f"Loaded data: {n_samples} samples, {input_dim} features")
 
-    # loader = DataLoader(
-    #     TensorDataset(torch.from_numpy(data).float()),
-    #     batch_size=batch_size,
-    #     shuffle=True,
-    # )
+    loader = DataLoader(
+        TensorDataset(torch.from_numpy(data).float()),
+        batch_size=batch_size,
+        shuffle=True,
+    )
 
     data = np.round(data)
 
@@ -84,13 +84,14 @@ def process_file(filepath: str):
     #     gen_vae = vae.decode(z).cpu().numpy()
     # gen_vae = np.round(gen_vae)
     # save_generated_samples(gen_vae, "VAE", dataset_name)
-    gen_vae = np.load(f"./output/{dataset_name}_VAE_samples.npy")
     # vae_end_time = time.perf_counter()
     # print(f"VAE running time: {vae_end_time - vae_start_time:.4f} seconds")
-
-    plot_pca(data, gen_vae, "VAE", dataset_name)
-    plot_tsne(data, gen_vae, "VAE", dataset_name)
-    plot_umap(data, gen_vae, "VAE", dataset_name)
+    gen_vae_path = f"./output/{dataset_name}_VAE_samples.npy"
+    if os.path.exists(gen_vae_path):
+        gen_vae = np.load(gen_vae_path)
+        plot_pca(data, gen_vae, "VAE", dataset_name)
+        plot_tsne(data, gen_vae, "VAE", dataset_name)
+        plot_umap(data, gen_vae, "VAE", dataset_name)
 
     # ----- IWAE -----
     # iwae_start_time = time.perf_counter()
@@ -103,13 +104,15 @@ def process_file(filepath: str):
     #     gen_iwae = iwae.sample(n_samples)
     # gen_iwae = np.round(gen_iwae)
     # save_generated_samples(gen_iwae, "IWAE", dataset_name)
-    gen_iwae = np.load(f"./output/{dataset_name}_IWAE_samples.npy")
     # iwae_end_time = time.perf_counter()
     # print(f"IWAE running time: {iwae_end_time - iwae_start_time:.4f} seconds")
 
-    plot_pca(data, gen_iwae, "IWAE", dataset_name)
-    plot_tsne(data, gen_iwae, "IWAE", dataset_name)
-    plot_umap(data, gen_iwae, "IWAE", dataset_name)
+    gen_iwae_path = f"./output/{dataset_name}_IWAE_samples.npy"
+    if os.path.exists(gen_iwae_path):
+        gen_iwae = np.load(gen_iwae_path)
+        plot_pca(data, gen_iwae, "IWAE", dataset_name)
+        plot_tsne(data, gen_iwae, "IWAE", dataset_name)
+        plot_umap(data, gen_iwae, "IWAE", dataset_name)
 
     # ----- Diffusion -----
     # diff_start_time = time.perf_counter()
@@ -120,13 +123,15 @@ def process_file(filepath: str):
     # with torch.no_grad():
     #     gen_diff = diff.sample(n_samples, device=device)
     # save_generated_samples(gen_diff, "diffusion", dataset_name)
-    gen_diff = np.load(f"./output/{dataset_name}_diffusion_samples.npy")
     # diff_end_time = time.perf_counter()
     # print(f"Diffusion running time: {diff_end_time - diff_start_time:.4f} seconds")
 
-    plot_pca(data, gen_diff, "diffusion", dataset_name)
-    plot_tsne(data, gen_diff, "diffusion", dataset_name)
-    plot_umap(data, gen_diff, "diffusion", dataset_name)
+    gen_diff_path = f"./output/{dataset_name}_diffusion_samples.npy"
+    if os.path.exists(gen_diff_path):
+        gen_diff = np.load(gen_diff_path)
+        plot_pca(data, gen_diff, "diffusion", dataset_name)
+        plot_tsne(data, gen_diff, "diffusion", dataset_name)
+        plot_umap(data, gen_diff, "diffusion", dataset_name)
 
     # ----- KDE -----
     if input_dim <= 10:
@@ -136,13 +141,15 @@ def process_file(filepath: str):
         # # direct mixture sampling from KDE
         # gen_kde = kde_sampling(data, bw, num_samples=n_samples)
         # save_generated_samples(gen_kde, "KDE", dataset_name)
-        gen_kde = np.load(f"./output/{dataset_name}_KDE_samples.npy")
         # kde_end_time = time.perf_counter()
         # print(f"KDE running time: {kde_end_time - kde_start_time:.4f} seconds")
 
-        plot_pca(data, gen_kde, "KDE", dataset_name)
-        plot_tsne(data, gen_kde, "KDE", dataset_name)
-        plot_umap(data, gen_kde, "KDE", dataset_name)
+        gen_kde_path = f"./output/{dataset_name}_KDE_samples.npy"
+        if os.path.exists(gen_kde_path):
+            gen_kde = np.load(gen_kde_path)
+            plot_pca(data, gen_kde, "KDE", dataset_name)
+            plot_tsne(data, gen_kde, "KDE", dataset_name)
+            plot_umap(data, gen_kde, "KDE", dataset_name)
 
     # ----- MIDASim -----
     # gen_ms = np.load(f"./output/{dataset_name}_MS_samples.npy")
@@ -211,12 +218,16 @@ def process_file(filepath: str):
 # NOTE TCGA will *not* run on MCMC because of the high dimensionality
 if __name__ == "__main__":
     os.makedirs("./output", exist_ok=True)
+
     process_file("./input/ibd.csv")
     process_file("./input/momspi16s.csv")
     process_file("./input/TCGA_HNSC_rawcount_data_t.csv")
     process_file("./input/gene_MTB_healthy_cleaned_t.csv")
     process_file("./input/gene_MTB_caries_cleaned_t.csv")
     process_file("./input/gene_MTB_periodontitis_cleaned_t.csv")
+    process_file("./input/gene_MGB_periodontitis_transposed.csv")
+    process_file("./input/gene_MGB_caries_transposed.csv")
+    process_file("./input/gene_MGB_healthy_transposed.csv")
     process_file("./input/GSE165512_CD.csv")
     process_file("./input/GSE165512_Control.csv")
     process_file("./input/GSE165512_UC.csv")
