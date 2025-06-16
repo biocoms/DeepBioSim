@@ -87,19 +87,12 @@ def plot_violin(
     out_dir: str = "./output",
 ):
     """
-    Plot and save a violin plot of one or more 1D vectors side by side.
-
-    Args:
-        H_list: list of 1D arrays (e.g. [H_orig, H_vae, H_iwae])
-        labels: list of strings, same length as H_list
-        metric_name: name of the metric (e.g. "Shannon Entropy")
-        dataset_name: name of the dataset (e.g. "ibd")
-        out_dir: directory to save output PNG
+    Plot and save a violin plot of one or more 1D vectors side by side,
+    with no baseline and y-limits set by the global min/max across all columns.
     """
     os.makedirs(out_dir, exist_ok=True)
 
     fig, ax = plt.subplots(figsize=(6, 4))
-    # positions will be 1,2,3...
     positions = np.arange(1, len(H_list) + 1)
 
     # violin plot
@@ -111,7 +104,7 @@ def plot_violin(
         widths=0.7,
     )
 
-    # add scatter of individual points, jittered horizontally
+    # scatter of individual points, jittered
     for i, H in enumerate(H_list, start=1):
         x = np.random.normal(i, 0.04, size=len(H))
         ax.scatter(x, H, s=8, color="k", alpha=0.1)
@@ -120,12 +113,19 @@ def plot_violin(
     ax.set_xticks(positions)
     ax.set_xticklabels(labels)
     ax.set_ylabel(metric_name)
-    # ax.set_title(f"{dataset_name}: {metric_name}")
-    ax.axhline(0, color="gray", linewidth=0.8)  # optional baseline
+
+    # ——— NEW: global min/max across all H’s ———
+    all_mins = [h.min() for h in H_list]
+    all_maxs = [h.max() for h in H_list]
+    ymin, ymax = min(all_mins), max(all_maxs)
+
+    # add 10% padding
+    pad = 0.1 * (ymax - ymin)
+    ax.set_ylim(ymin - pad, ymax + pad)
 
     plt.tight_layout()
     out_path = os.path.join(
-        out_dir, f"{dataset_name}_{metric_name.replace(' ','_')}_violin.png"
+        out_dir, f"{dataset_name}_{metric_name.replace(' ', '_')}_violin.png"
     )
     plt.savefig(out_path)
     plt.close(fig)

@@ -129,8 +129,8 @@ def process_file(filepath: str):
     gen_diff_path = f"./output/{dataset_name}_diffusion_samples.npy"
     if os.path.exists(gen_diff_path):
         gen_diff = np.load(gen_diff_path)
-        plot_pca(data, gen_diff, "diffusion", dataset_name)
-        plot_tsne(data, gen_diff, "diffusion", dataset_name)
+        # plot_pca(data, gen_diff, "diffusion", dataset_name)
+        # plot_tsne(data, gen_diff, "diffusion", dataset_name)
         plot_umap(data, gen_diff, "diffusion", dataset_name)
 
     # ----- KDE -----
@@ -144,12 +144,12 @@ def process_file(filepath: str):
     # kde_end_time = time.perf_counter()
     # print(f"KDE running time: {kde_end_time - kde_start_time:.4f} seconds")
 
-    gen_kde_path = f"./output/{dataset_name}_KDE_samples.npy"
-    if os.path.exists(gen_kde_path):
-        gen_kde = np.load(gen_kde_path)
-        plot_pca(data, gen_kde, "KDE", dataset_name)
-        plot_tsne(data, gen_kde, "KDE", dataset_name)
-        plot_umap(data, gen_kde, "KDE", dataset_name)
+    # gen_kde_path = f"./output/{dataset_name}_KDE_samples.npy"
+    # if os.path.exists(gen_kde_path):
+    #     gen_kde = np.load(gen_kde_path)
+    # plot_pca(data, gen_kde, "KDE", dataset_name)
+    # plot_tsne(data, gen_kde, "KDE", dataset_name)
+    # plot_umap(data, gen_kde, "KDE", dataset_name)
 
     # ----- MIDASim -----
     # gen_ms = np.load(f"./output/{dataset_name}_MS_samples.npy")
