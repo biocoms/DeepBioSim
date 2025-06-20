@@ -23,8 +23,8 @@ def plot_pca(orig: np.ndarray, gen: np.ndarray, method_name: str, dataset_name: 
     plt.ylabel("PC2")
     # plt.legend()
     plt.tight_layout()
-    out_path = f"./output/{dataset_name}_{method_name}_pca.png"
-    plt.savefig(out_path)
+    out_path = f"./output/{dataset_name}_{method_name}_pca.eps"
+    plt.savefig(out_path, format="eps", dpi=1200)
     plt.close()
     print(f"Saved PCA plot to {out_path}")
 
@@ -48,8 +48,8 @@ def plot_tsne(orig: np.ndarray, gen: np.ndarray, method_name: str, dataset_name:
     plt.ylabel("t-SNE 2")
     # plt.legend()
     plt.tight_layout()
-    out_path = f"./output/{dataset_name}_{method_name}_tsne.png"
-    plt.savefig(out_path)
+    out_path = f"./output/{dataset_name}_{method_name}_tsne.eps"
+    plt.savefig(out_path, format="eps", dpi=1200)
     plt.close()
     print(f"Saved t-SNE plot to {out_path}")
 
@@ -73,8 +73,8 @@ def plot_umap(orig: np.ndarray, gen: np.ndarray, method_name: str, dataset_name:
     plt.ylabel("UMAP 2")
     # plt.legend()
     plt.tight_layout()
-    out_path = f"./output/{dataset_name}_{method_name}_umap.png"
-    plt.savefig(out_path)
+    out_path = f"./output/{dataset_name}_{method_name}_umap.eps"
+    plt.savefig(out_path, format="eps", dpi=1200)
     plt.close()
     print(f"Saved UMAP plot to {out_path}")
 
@@ -125,9 +125,9 @@ def plot_violin(
 
     plt.tight_layout()
     out_path = os.path.join(
-        out_dir, f"{dataset_name}_{metric_name.replace(' ', '_')}_violin.png"
+        out_dir, f"{dataset_name}_{metric_name.replace(' ', '_')}_violin.eps"
     )
-    plt.savefig(out_path)
+    plt.savefig(out_path, format="eps", dpi=1200)
     plt.close(fig)
     print(f"Saved violin plot to {out_path}")
 

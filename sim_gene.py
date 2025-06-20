@@ -86,12 +86,12 @@ def process_file(filepath: str):
     # save_generated_samples(gen_vae, "VAE", dataset_name)
     # vae_end_time = time.perf_counter()
     # print(f"VAE running time: {vae_end_time - vae_start_time:.4f} seconds")
-    # gen_vae_path = f"./output/{dataset_name}_VAE_samples.npy"
-    # if os.path.exists(gen_vae_path):
-    #     gen_vae = np.load(gen_vae_path)
-    #     plot_pca(data, gen_vae, "VAE", dataset_name)
-    #     plot_tsne(data, gen_vae, "VAE", dataset_name)
-    #     plot_umap(data, gen_vae, "VAE", dataset_name)
+    gen_vae_path = f"./output/{dataset_name}_VAE_samples.npy"
+    if os.path.exists(gen_vae_path):
+        gen_vae = np.load(gen_vae_path)
+        plot_pca(data, gen_vae, "VAE", dataset_name)
+        plot_tsne(data, gen_vae, "VAE", dataset_name)
+        plot_umap(data, gen_vae, "VAE", dataset_name)
 
     # ----- IWAE -----
     # iwae_start_time = time.perf_counter()
@@ -107,12 +107,12 @@ def process_file(filepath: str):
     # iwae_end_time = time.perf_counter()
     # print(f"IWAE running time: {iwae_end_time - iwae_start_time:.4f} seconds")
 
-    # gen_iwae_path = f"./output/{dataset_name}_IWAE_samples.npy"
-    # if os.path.exists(gen_iwae_path):
-    #     gen_iwae = np.load(gen_iwae_path)
-    #     plot_pca(data, gen_iwae, "IWAE", dataset_name)
-    #     plot_tsne(data, gen_iwae, "IWAE", dataset_name)
-    #     plot_umap(data, gen_iwae, "IWAE", dataset_name)
+    gen_iwae_path = f"./output/{dataset_name}_IWAE_samples.npy"
+    if os.path.exists(gen_iwae_path):
+        gen_iwae = np.load(gen_iwae_path)
+        plot_pca(data, gen_iwae, "IWAE", dataset_name)
+        plot_tsne(data, gen_iwae, "IWAE", dataset_name)
+        plot_umap(data, gen_iwae, "IWAE", dataset_name)
 
     # ----- Diffusion -----
     # diff_start_time = time.perf_counter()
@@ -129,8 +129,8 @@ def process_file(filepath: str):
     gen_diff_path = f"./output/{dataset_name}_diffusion_samples.npy"
     if os.path.exists(gen_diff_path):
         gen_diff = np.load(gen_diff_path)
-        # plot_pca(data, gen_diff, "diffusion", dataset_name)
-        # plot_tsne(data, gen_diff, "diffusion", dataset_name)
+        plot_pca(data, gen_diff, "diffusion", dataset_name)
+        plot_tsne(data, gen_diff, "diffusion", dataset_name)
         plot_umap(data, gen_diff, "diffusion", dataset_name)
 
     # ----- KDE -----
@@ -164,6 +164,13 @@ def process_file(filepath: str):
     # H_diff = shannon(gen_diff)
     # H_kde = shannon(gen_kde)
     # H_ms = shannon(gen_ms)
+
+    # plot_violin(
+    #     [H_orig, H_vae, H_iwae],
+    #     ["Original", "VAE", "IWAE"],
+    #     "shannon entropy",
+    #     dataset_name,
+    # )
 
     # plot_violin(
     #     [H_orig, H_vae, H_iwae, H_ms],
@@ -201,6 +208,13 @@ def process_file(filepath: str):
     # rich_ms = richness(gen_ms)
 
     # plot_violin(
+    #     [rich_orig, rich_vae, rich_iwae],
+    #     ["Original", "VAE", "IWAE"],
+    #     "richness",
+    #     dataset_name,
+    # )
+
+    # plot_violin(
     #     [rich_orig, rich_vae, rich_iwae, rich_ms],
     #     ["Original", "VAE", "IWAE", "MS"],
     #     "richness",
@@ -233,15 +247,15 @@ def process_file(filepath: str):
 if __name__ == "__main__":
     os.makedirs("./output", exist_ok=True)
 
-    # process_file("./input/ibd.csv")
-    # process_file("./input/momspi16s.csv")
-    # process_file("./input/TCGA_HNSC_rawcount_data_t.csv")
+    process_file("./input/ibd.csv")
+    process_file("./input/momspi16s.csv")
+    process_file("./input/TCGA_HNSC_rawcount_data_t.csv")
     process_file("./input/gene_MTB_healthy_cleaned_t.csv")
-    # process_file("./input/gene_MTB_caries_cleaned_t.csv")
-    # process_file("./input/gene_MTB_periodontitis_cleaned_t.csv")
-    # process_file("./input/gene_MGB_periodontitis_transposed.csv")
-    # process_file("./input/gene_MGB_caries_transposed.csv")
-    # process_file("./input/gene_MGB_healthy_transposed.csv")
-    # process_file("./input/GSE165512_CD.csv")
-    # process_file("./input/GSE165512_Control.csv")
-    # process_file("./input/GSE165512_UC.csv")
+    process_file("./input/gene_MTB_caries_cleaned_t.csv")
+    process_file("./input/gene_MTB_periodontitis_cleaned_t.csv")
+    process_file("./input/gene_MGB_periodontitis_transposed.csv")
+    process_file("./input/gene_MGB_caries_transposed.csv")
+    process_file("./input/gene_MGB_healthy_transposed.csv")
+    process_file("./input/GSE165512_CD.csv")
+    process_file("./input/GSE165512_Control.csv")
+    process_file("./input/GSE165512_UC.csv")
