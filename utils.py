@@ -5,8 +5,9 @@ from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE
 from umap import UMAP
 import os
+from scipy.spatial.distance import pdist, squareform
 
-import pdb
+EPS = 1e-8
 
 
 def plot_pca(orig: np.ndarray, gen: np.ndarray, method_name: str, dataset_name: str):
@@ -142,6 +143,45 @@ def shannon(mat):
 def richness(mat: np.ndarray, threshold: float = 0.0) -> np.ndarray:
     # mat > threshold gives a boolean array; sum over features axis
     return np.sum(mat > threshold, axis=0)
+
+
+def bc_matrix(mat: np.ndarray) -> np.ndarray:
+    # X: (n_samples, n_taxa) array of counts or relative abundances
+    # If counts, you may want to convert to relative abundances per sample:
+    mat += EPS
+    X_rel = mat / mat.sum(axis=1, keepdims=True)
+
+    # Compute pairwise Bray–Curtis dissimilarities
+    # pdist returns a condensed distance vector
+    bc_condensed = pdist(X_rel, metric="braycurtis")
+
+    # Convert to a square form (n×n) matrix
+    bc_matrix = squareform(bc_condensed)
+    return bc_matrix
+
+
+def jaccard_matrix(mat: np.ndarray) -> np.ndarray:
+    """
+    Compute the sample-by-sample Jaccard distance matrix.
+
+    Args:
+        mat: (n_samples, n_taxa) array of non-negative counts (or abundances)
+
+    Returns:
+        (n_samples, n_samples) array of Jaccard distances between samples
+    """
+    # 1) Convert to boolean presence/absence
+    presence = mat > 0.5
+    # import pdb
+
+    # pdb.set_trace()
+
+    # 2) Compute condensed Jaccard distances
+    #    SciPy treats boolean arrays natively for 'jaccard'
+    jc_condensed = pdist(presence, metric="jaccard")
+
+    # 3) Convert to a full square form
+    return squareform(jc_condensed)
 
 
 def save_generated_samples(
