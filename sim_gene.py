@@ -256,12 +256,12 @@ def process_file(filepath: str):
         gen_vae_bc = bc_matrix(gen_vae_t)
         gen_iwae_t = np.expm1(gen_iwae.T)
         gen_iwae_bc = bc_matrix(gen_iwae_t)
-        plot_umap(orig_bc, gen_vae_bc, "VAE_BC", dataset_name)
-        plot_umap(orig_bc, gen_iwae_bc, "IWAE_BC", dataset_name)
+        plot_pca(orig_bc, gen_vae_bc, "VAE_BC", dataset_name)
+        plot_pca(orig_bc, gen_iwae_bc, "IWAE_BC", dataset_name)
         gen_vae_jac = jaccard_matrix(gen_vae_t)
         gen_iwae_jac = jaccard_matrix(gen_iwae_t)
-        plot_umap(orig_jac, gen_vae_jac, "VAE_Jaccard", dataset_name)
-        plot_umap(orig_jac, gen_iwae_jac, "IWAE_Jaccard", dataset_name)
+        plot_pca(orig_jac, gen_vae_jac, "VAE_Jaccard", dataset_name)
+        plot_pca(orig_jac, gen_iwae_jac, "IWAE_Jaccard", dataset_name)
 
     # if os.path.exists(gen_diff_path):
     #     gen_diff = np.load(gen_diff_path)
