@@ -75,7 +75,7 @@ def main():
         "--learning_rate", type=float, default=1e-3, help="Learning rate for optimizer"
     )
     parser.add_argument(
-        "-K", type=int, default=20, help="Number of importance samples for IWAE"
+        "--K", type=int, default=20, help="Number of importance samples for IWAE"
     )
     parser.add_argument(
         "--time_steps",
@@ -108,7 +108,7 @@ def main():
     data_log = np.log1p(data)
 
     n_samples, input_dim = data_log.shape
-    print(f"Loaded data: {n_samples} taxa, {input_dim} samples")
+    print(f"Loaded data: {input_dim} samples, {n_samples} taxa")
 
     loader = DataLoader(
         TensorDataset(torch.from_numpy(data_log).float()),
@@ -156,9 +156,6 @@ def main():
         with torch.no_grad():
             gen = diff.sample(n_samples, device=device)
         gen[gen < 0] = 0  # Ensure no negative counts
-        import pdb
-
-        pdb.set_trace()
         elapsed = time.perf_counter() - start
         print(f"Diffusion done in {elapsed:.2f}s")
 
