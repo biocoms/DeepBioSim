@@ -1,16 +1,16 @@
 #!/usr/bin/env bash
 
 INPUT_CSV="./input/ibd.csv"
-METHOD="diffusion"
+METHOD="iwae" # vae, iwae, diffusion, kde
 OUTPUT_FOLDER="./output_sample/"
-LATENT_DIM=16
-HIDDEN_DIM=128
+LATENT_DIM=16 # 8, 16, 32, 64
+HIDDEN_DIM=128 # 64, 128, 256 as long as latent_dim <= hidden_dim
 NUM_EPOCHS=100
-BATCH_SIZE=64
+BATCH_SIZE=64 # 32, 64, 128
 LEARNING_RATE=0.001
-K=10
-TIME_STEPS=3000
-RANDOM_SEED=42
+K=10 # the larger the more accurate but slower
+TIME_STEPS=3000 # the larger the more accurate but slower
+RANDOM_SEED=42 # reproducibility
 
 # Ensure the CLI script is executable or call via python
 python run_deepmbgen.py \
@@ -25,6 +25,3 @@ python run_deepmbgen.py \
     # --k $K \
     # --time_steps $TIME_STEPS \
     # --random_seed $RANDOM_SEED
-
-# Example:
-# ./run_sim_single.sh data/ibd.csv vae output/ --latent_dim 32 --num_epochs 200
