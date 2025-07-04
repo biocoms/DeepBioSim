@@ -9,6 +9,8 @@ output/
 gen_ms/
 *.csv
 
+output_sample/
+
 __pychache__/
 *.pyc
 
