@@ -3,7 +3,7 @@
 Biological Count Data Simulation using Variational Autoencoders (VAEs)
 
 ## Quickstart
-```pip install KDEpy torch torchvision numpy sklearn matplotlib pandas```
+```pip install KDEpy tqdm torch torchvision numpy scikit-learn matplotlib pandas```
 
  ```./run_deepbiosim.sh``` (Check this file for detailed instructions)
 

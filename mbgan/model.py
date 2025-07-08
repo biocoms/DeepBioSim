@@ -2,11 +2,11 @@
 # https://github.com/keras-team/keras-contrib/blob/master/examples/improved_wgan.py
 
 import keras.optimizers
-import keras.backend as K
-
 from keras.layers import Input, Dense, Dropout, Lambda, Layer
-from keras.layers import BatchNormalization, Activation, LeakyReLU, merge
+from keras.layers import BatchNormalization, Activation, LeakyReLU
 from keras.models import Sequential, Model
+
+import tensorflow as tf
 
 import os
 import datetime
@@ -16,25 +16,18 @@ from functools import partial
 
 
 def gradient_penalty_loss(y_true, y_pred, averaged_samples):
-    """Calculates the gradient penalty loss for a batch of "averaged" samples."""
-    gradients = K.gradients(y_pred, averaged_samples)[0]
-    # compute the euclidean norm by squaring ...
-    gradients_sqr = K.square(gradients)
-    #   ... summing over the rows ...
-    gradients_sqr_sum = K.sum(
-        gradients_sqr, axis=np.arange(1, len(gradients_sqr.shape))
-    )
-    #   ... and sqrt
-    gradient_l2_norm = K.sqrt(gradients_sqr_sum)
-    # compute lambda * (1 - ||grad||)^2 still for each single sample
-    gradient_penalty = K.square(1 - gradient_l2_norm)
-    # return the mean as loss over all the batch samples
-    return K.mean(gradient_penalty)
+    # compute ∇_x D(interpolated)
+    gradients = tf.gradients(y_pred, averaged_samples)[0]
+    sq = tf.square(gradients)
+    sq_sum = tf.reduce_sum(sq, axis=list(range(1, len(gradients.shape))))
+    l2 = tf.sqrt(sq_sum)
+    penalty = tf.square(1.0 - l2)
+    return tf.reduce_mean(penalty)
 
 
 def wasserstein_loss(y_true, y_pred):
     """Calculates the Wasserstein loss for a sample batch."""
-    return K.mean(y_true * y_pred)
+    return tf.reduce_mean(y_true * y_pred)
 
 
 def get_optimizer(optimizer, lr, decay=0.0, clipnorm=0.0, clipvalue=0.0, **kwargs):
@@ -42,16 +35,32 @@ def get_optimizer(optimizer, lr, decay=0.0, clipnorm=0.0, clipvalue=0.0, **kwarg
     support_optimizers = {"SGD", "RMSprop", "Adagrad", "Adadelta", "Adam"}
     assert optimizer in support_optimizers
     fn = getattr(keras.optimizers, optimizer)
-    return fn(lr, decay=decay, clipnorm=clipnorm, clipvalue=clipvalue, **kwargs)
+    # build arg dict but only include non-zero clipping fields
+    opt_kwargs = dict(**kwargs)
+    if decay and decay > 0:
+        opt_kwargs["decay"] = decay
+    if clipnorm and clipnorm > 0:
+        opt_kwargs["clipnorm"] = clipnorm
+    if clipvalue and clipvalue > 0:
+        opt_kwargs["clipvalue"] = clipvalue
+    return fn(learning_rate=lr, **opt_kwargs)
 
 
-class RandomWeightedAverage(_Merge):
+class RandomWeightedAverage(Layer):
     """Calculate a random weighted average between two tensors."""
 
-    def _merge_function(self, inputs):
-        batch_size = K.shape(inputs[0])[0]
-        alpha = K.random_uniform((batch_size, 1, 1, 1))
-        return (alpha * inputs[0]) + ((1 - alpha) * inputs[1])
+    def call(self, inputs, **kwargs):
+        real, fake = inputs
+        # use tf.shape instead of K.shape
+        batch = tf.shape(real)[0]
+        alpha = tf.random.uniform((batch, 1))
+        # broadcast alpha to (batch, ntaxa)
+        alpha = tf.repeat(alpha, tf.shape(real)[1], axis=1)
+        return alpha * real + (1.0 - alpha) * fake
+
+    def compute_output_shape(self, input_shape):
+        # output shape is same as each of the two inputs
+        return input_shape[0]
 
 
 class PhyloTransform(Layer):
@@ -105,7 +114,12 @@ def build_critic(
     model = Sequential()
 
     model.add(PhyloTransform(tf_matrix, input_shape=input_shape))
-    model.add(Lambda(lambda x: K.log(1 + x * t_pow) / K.log(1 + t_pow)))
+    model.add(
+        Lambda(
+            lambda x: tf.math.log(1.0 + x * t_pow) / tf.math.log(1.0 + t_pow),
+            output_shape=lambda s: s,
+        )
+    )
     model.add(Dense(n_channels))
     model.add(LeakyReLU(alpha=0.2))
     model.add(Dropout(dropout_rate))
@@ -183,7 +197,7 @@ class MBGAN(object):
         optimizer = get_optimizer(
             self.train_config["critic"]["optimizer"][0],
             lr=self.train_config["critic"]["lr"],
-            **self.train_config["critic"]["optimizer"][1]
+            **self.train_config["critic"]["optimizer"][1],
         )
         loss_weights = self.train_config["critic"]["loss_weights"]
 
@@ -209,119 +223,87 @@ class MBGAN(object):
         optimizer = get_optimizer(
             self.train_config["generator"]["optimizer"][0],
             lr=self.train_config["generator"]["lr"],
-            **self.train_config["generator"]["optimizer"][1]
+            **self.train_config["generator"]["optimizer"][1],
         )
         self.generator_graph.compile(loss=wasserstein_loss, optimizer=optimizer)
 
     def train(
         self,
         dataset,
-        iteration,
+        iterations,
         batch_size=32,
         n_critic=5,
         n_generator=1,
-        save_interval=50,
+        save_interval=1000,
         save_fn=None,
         experiment_dir="mbgan_train",
-        pre_processor=None,
-        verbose=0,
-        **kwargs
     ):
-        """Train the MB-GAN with given dataset.
-        dataset: a sample x taxa tables.
-        iteration: iteration to train the model.
-        batch_size: samples to put in each batch.
-        n_critic: times to update critic in each iteration.
-        n_generator: times to update generator in each iteration.
-        save_interval: the frequency to save model and sample outputs.
-        save_fn: extra analyzing/saving functions run on save_interval.
-        pre_processor: pre processing steps before feed into the model.
-        post_processor: post processing steps on top of model generated results.
-        verbose: not used. Aim to control screen output level.
-        **kwargs: expanding
-        """
-        st_start = datetime.datetime.now()
-        print("#####################################################")
-        print("Training start at: {}".format(st_start.strftime("%Y-%m-%d %H:%M:%S")))
-        print(
-            "Run MB-GAN for {:d} iterations with batch_size={:d}".format(
-                iteration, batch_size
-            )
-        )
-        print("Save generated samples and model every {:d} iters".format(save_interval))
 
-        # Create folders to save log file and models
-        self.log_dir = os.path.join(
-            experiment_dir, "{}_{:%Y%m%dT%H%M%S}".format(self.model_name, st_start)
-        )
-        print("Results are exported to folder: {}".format(self.log_dir))
-        if not os.path.exists(self.log_dir):
-            print("    Create log folder: {}".format(self.log_dir))
-            os.makedirs(self.log_dir)
+        # optimizers
+        gen_opt = get_optimizer("RMSprop", lr=self.train_config["generator"]["lr"])
+        critic_opt = get_optimizer("RMSprop", lr=self.train_config["critic"]["lr"])
+        gp_weight = self.train_config["critic"]["loss_weights"][2]
 
-        model_dir = os.path.join(self.log_dir, "models")
-        if not os.path.exists(model_dir):
-            print("    Create model folder: {}".format(model_dir))
-            os.makedirs(model_dir)
-
-        print("Generator structure:")
-        self.generator.summary()
-        print("Critic structure:")
-        self.critic.summary()
-
-        ## Set up the adversarial ground truths
-        valid = -np.ones((batch_size, 1))
-        fake = np.ones((batch_size, 1))
-        dummy = np.zeros((batch_size, 1))  # Dummy gt for gradient penalty
-
-        ## Alternatively train critic (n_critic steps) and generator (n_genertor steps).
-        for epoch in range(1, iteration + 1):
+        for epoch in range(1, iterations + 1):
+            # ——— critic updates ———
+            # make sure critic’s weights are marked trainable
+            self.critic.trainable = True
+            self.generator.trainable = False
             for _ in range(n_critic):
-                # Randomly select a batch of samples to train the critic
                 real = dataset[np.random.randint(0, dataset.shape[0], batch_size)]
-                if pre_processor is not None:
-                    real = pre_processor(real)
-                noise = np.random.normal(0, 1, (batch_size, self.latent_dim))
-                d_loss = self.critic_graph.train_on_batch(
-                    [real, noise], [valid, fake, dummy]
-                )
+                z = tf.random.normal([batch_size, self.latent_dim])
 
+                with tf.GradientTape() as tape:
+                    fake_scores = self.critic(
+                        self.generator(z, training=True), training=True
+                    )
+                    real_scores = self.critic(real, training=True)
+
+                    # gradient penalty
+                    alpha = tf.random.uniform([batch_size, 1])
+                    interp = alpha * real + (1 - alpha) * self.generator(
+                        z, training=True
+                    )
+                    with tf.GradientTape() as gp_tape:
+                        gp_tape.watch(interp)
+                        interp_score = self.critic(interp, training=True)
+                    grads = gp_tape.gradient(interp_score, interp)
+                    gp = tf.reduce_mean((tf.norm(grads, axis=1) - 1.0) ** 2)
+
+                    # WGAN-GP critic loss
+                    c_loss = (
+                        tf.reduce_mean(fake_scores)
+                        - tf.reduce_mean(real_scores)
+                        + gp_weight * gp
+                    )
+
+                critic_vars = self.critic.trainable_variables
+                grads = tape.gradient(c_loss, critic_vars)
+                critic_opt.apply_gradients(zip(grads, critic_vars))
+
+            # ——— generator updates ———
             for _ in range(n_generator):
-                #  Update the generator
-                noise = np.random.normal(0, 1, (batch_size, self.latent_dim))
-                g_loss = self.generator_graph.train_on_batch(noise, valid)
+                z = tf.random.normal([batch_size, self.latent_dim])
+                with tf.GradientTape() as tape:
+                    # generator wants to make critic give *high* scores
+                    g_loss = -tf.reduce_mean(
+                        self.critic(self.generator(z, training=True), training=False)
+                    )
+                grads = tape.gradient(g_loss, self.generator.trainable_variables)
+                gen_opt.apply_gradients(zip(grads, self.generator.trainable_variables))
 
-            # Plot the progress
-            log_info = [
-                "iter={:d}".format(epoch),
-                "[D loss={:.6f}, w_loss_real={:.6f}, w_loss_fake={:.6f}, gp_loss={:.6f}]".format(
-                    *d_loss
-                ),
-                "[G loss={:.6f}]".format(g_loss),
-            ]
-            print("{} {} {}".format(*log_info))
-
-            # Save generated samples on saving interval
+            # logging & optional saving
             if epoch % save_interval == 0:
-                print(
-                    "At iter={:d}, saving model weights and exporting generated samples".format(
-                        epoch
-                    )
+                print(f"iter={epoch}  D_loss={c_loss:.4f}  G_loss={g_loss:.4f}")
+                # save weights + sample CSV
+                self.critic.save_weights(
+                    os.path.join(experiment_dir, f"critic_{epoch}.h5")
                 )
-                # custom_objects={'PhyloTransform': PhyloTransform})
-                self.critic.save(
-                    os.path.join(
-                        model_dir,
-                        "{:s}_{:06d}_critic.h5".format(self.model_name, epoch),
-                    )
+                self.generator.save_weights(
+                    os.path.join(experiment_dir, f"gen_{epoch}.h5")
                 )
-                self.generator.save(
-                    os.path.join(
-                        model_dir,
-                        "{:s}_{:06d}_generator.h5".format(self.model_name, epoch),
-                    )
-                )
-                save_fn(self, epoch)
+                if save_fn:
+                    save_fn(self, epoch)
 
     def predict(self, n_samples=100, transform=None, seed=None):
         np.random.seed(seed)

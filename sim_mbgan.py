@@ -56,14 +56,13 @@ def main():
     mbgan = MBGAN(name, model_config, train_config)
     mbgan.train(
         dataset=data,
-        iteration=iterations,
+        iterations=iterations,
         batch_size=batch_size,
         n_critic=n_critic,
         n_generator=n_generator,
         save_interval=save_interval,
         save_fn=None,
         experiment_dir=output_dir,
-        verbose=1,
     )
 
     synth = mbgan.predict(n_samples=data.shape[0], seed=42)
