@@ -2,7 +2,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 from sklearn.decomposition import PCA
-from sklearn.manifold import TSNE
+from sklearn.manifold import TSNE, MDS
 from umap import UMAP
 import os
 from scipy.spatial.distance import pdist, squareform
@@ -78,6 +78,64 @@ def plot_umap(orig: np.ndarray, gen: np.ndarray, method_name: str, dataset_name:
     plt.savefig(out_path, format="eps", dpi=1200)
     plt.close()
     print(f"Saved UMAP plot to {out_path}")
+
+
+def plot_nmds(
+    orig: np.ndarray,
+    gen: np.ndarray,
+    method_name: str,
+    dataset_name: str,
+    metric: str = "braycurtis",
+    random_state: int = 42,
+    out_dir: str = "./output",
+):
+    """
+    Generate and save a non-metric MDS scatter plot comparing original
+    and generated samples.
+
+    Args:
+        orig:       (n_samples_orig × n_features) original data
+        gen:        (n_samples_gen  × n_features) generated data
+        method_name:label for the generated set (e.g. "IWAE")
+        dataset_name:identifier for output filename (e.g. "ibd")
+        metric:     distance metric passed to pdist (default="braycurtis")
+        random_state: seed for reproducibility
+        out_dir:    directory to save the .eps figure
+    """
+    os.makedirs(out_dir, exist_ok=True)
+
+    # 1) stack and compute pairwise distances
+    combined = np.vstack([orig, gen])
+    dist_condensed = pdist(combined, metric=metric)
+    dist_matrix = squareform(dist_condensed)
+
+    # 2) run non-metric MDS
+    mds = MDS(
+        n_components=2,
+        metric=False,
+        dissimilarity="precomputed",
+        random_state=random_state,
+        n_init=4,
+        max_iter=3000,
+    )
+    emb = mds.fit_transform(dist_matrix)
+    orig_emb = emb[: orig.shape[0]]
+    gen_emb = emb[orig.shape[0] :]
+
+    # 3) plot
+    plt.figure(figsize=(8, 6))
+    plt.scatter(orig_emb[:, 0], orig_emb[:, 1], s=10, alpha=0.5, label="Original")
+    plt.scatter(gen_emb[:, 0], gen_emb[:, 1], s=10, alpha=0.5, label=method_name)
+    plt.xlabel("NMDS 1")
+    plt.ylabel("NMDS 2")
+    # plt.legend()
+    plt.tight_layout()
+
+    # 4) save
+    out_path = os.path.join(out_dir, f"{dataset_name}_{method_name}_nmds.eps")
+    plt.savefig(out_path, format="eps", dpi=1200)
+    plt.close()
+    print(f"Saved NMDS plot to {out_path}")
 
 
 def plot_violin(

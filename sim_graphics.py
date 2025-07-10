@@ -74,18 +74,18 @@ def process_file(filepath: str):
     data = np.round(data)
 
     # ----- Vanilla VAE -----
-    vae_start_time = time.perf_counter()
-    vae = VAE(input_dim, hidden_dim, latent_dim).to(device)
-    opt_vae = optim.Adam(vae.parameters(), lr=learning_rate)
-    train_vae(vae, loader, opt_vae, num_epochs=num_epochs, device=device)
-    vae.eval()
-    with torch.no_grad():
-        z = torch.randn(n_samples, latent_dim, device=device)
-        gen_vae = vae.decode(z).cpu().numpy()
-    gen_vae = np.round(gen_vae)
-    save_generated_samples(gen_vae, "VAE", dataset_name)
-    vae_end_time = time.perf_counter()
-    print(f"VAE running time: {vae_end_time - vae_start_time:.4f} seconds")
+    # vae_start_time = time.perf_counter()
+    # vae = VAE(input_dim, hidden_dim, latent_dim).to(device)
+    # opt_vae = optim.Adam(vae.parameters(), lr=learning_rate)
+    # train_vae(vae, loader, opt_vae, num_epochs=num_epochs, device=device)
+    # vae.eval()
+    # with torch.no_grad():
+    #     z = torch.randn(n_samples, latent_dim, device=device)
+    #     gen_vae = vae.decode(z).cpu().numpy()
+    # gen_vae = np.round(gen_vae)
+    # save_generated_samples(gen_vae, "VAE", dataset_name)
+    # vae_end_time = time.perf_counter()
+    # print(f"VAE running time: {vae_end_time - vae_start_time:.4f} seconds")
     gen_vae_path = f"./output/{dataset_name}_VAE_samples.npy"
     # if os.path.exists(gen_vae_path):
     #     gen_vae = np.load(gen_vae_path)
@@ -94,18 +94,18 @@ def process_file(filepath: str):
     # plot_umap(data, gen_vae, "VAE", dataset_name)
 
     # ----- IWAE -----
-    iwae_start_time = time.perf_counter()
-    iwae = IWAE(input_dim, latent_dim, hidden_dim, K).to(device)
-    opt_iwae = optim.Adam(iwae.parameters(), lr=learning_rate)
-    train_iwae(iwae, loader, opt_iwae, num_epochs=num_epochs, device=device)
-    iwae.eval()
-    with torch.no_grad():
-        z = torch.randn(n_samples, latent_dim, device=device)
-        gen_iwae = iwae.sample(n_samples)
-    gen_iwae = np.round(gen_iwae)
-    save_generated_samples(gen_iwae, "IWAE", dataset_name)
-    iwae_end_time = time.perf_counter()
-    print(f"IWAE running time: {iwae_end_time - iwae_start_time:.4f} seconds")
+    # iwae_start_time = time.perf_counter()
+    # iwae = IWAE(input_dim, latent_dim, hidden_dim, K).to(device)
+    # opt_iwae = optim.Adam(iwae.parameters(), lr=learning_rate)
+    # train_iwae(iwae, loader, opt_iwae, num_epochs=num_epochs, device=device)
+    # iwae.eval()
+    # with torch.no_grad():
+    #     z = torch.randn(n_samples, latent_dim, device=device)
+    #     gen_iwae = iwae.sample(n_samples)
+    # gen_iwae = np.round(gen_iwae)
+    # save_generated_samples(gen_iwae, "IWAE", dataset_name)
+    # iwae_end_time = time.perf_counter()
+    # print(f"IWAE running time: {iwae_end_time - iwae_start_time:.4f} seconds")
 
     gen_iwae_path = f"./output/{dataset_name}_IWAE_samples.npy"
     # if os.path.exists(gen_iwae_path):
@@ -115,16 +115,16 @@ def process_file(filepath: str):
     # plot_umap(data, gen_iwae, "IWAE", dataset_name)
 
     # ----- Diffusion -----
-    diff_start_time = time.perf_counter()
-    diff = DiffusionModel(input_dim, hidden_dim, timesteps=3000).to(device)
-    opt_diff = torch.optim.Adam(diff.parameters(), lr=1e-3)
-    train_diffusion(diff, loader, opt_diff, num_epochs, device=device)
-    diff.eval()
-    with torch.no_grad():
-        gen_diff = diff.sample(n_samples, device=device)
-    save_generated_samples(gen_diff, "diffusion", dataset_name)
-    diff_end_time = time.perf_counter()
-    print(f"Diffusion running time: {diff_end_time - diff_start_time:.4f} seconds")
+    # diff_start_time = time.perf_counter()
+    # diff = DiffusionModel(input_dim, hidden_dim, timesteps=3000).to(device)
+    # opt_diff = torch.optim.Adam(diff.parameters(), lr=1e-3)
+    # train_diffusion(diff, loader, opt_diff, num_epochs, device=device)
+    # diff.eval()
+    # with torch.no_grad():
+    #     gen_diff = diff.sample(n_samples, device=device)
+    # save_generated_samples(gen_diff, "diffusion", dataset_name)
+    # diff_end_time = time.perf_counter()
+    # print(f"Diffusion running time: {diff_end_time - diff_start_time:.4f} seconds")
 
     gen_diff_path = f"./output/{dataset_name}_diffusion_samples.npy"
     # if os.path.exists(gen_diff_path):
@@ -134,15 +134,15 @@ def process_file(filepath: str):
     #     plot_umap(data, gen_diff, "diffusion", dataset_name)
 
     # ----- KDE -----
-    if input_dim <= 10:
-    kde_start_time = time.perf_counter()
-    kde = FFTKDE(kernel="gaussian").fit(data)
-    bw = kde.bw
-    # direct mixture sampling from KDE
-    gen_kde = kde_sampling(data, bw, num_samples=n_samples)
-    save_generated_samples(gen_kde, "KDE", dataset_name)
-    kde_end_time = time.perf_counter()
-    print(f"KDE running time: {kde_end_time - kde_start_time:.4f} seconds")
+    # if input_dim <= 10:
+    #     kde_start_time = time.perf_counter()
+    #     kde = FFTKDE(kernel="gaussian").fit(data)
+    #     bw = kde.bw
+    #     # direct mixture sampling from KDE
+    #     gen_kde = kde_sampling(data, bw, num_samples=n_samples)
+    #     save_generated_samples(gen_kde, "KDE", dataset_name)
+    #     kde_end_time = time.perf_counter()
+    #     print(f"KDE running time: {kde_end_time - kde_start_time:.4f} seconds")
 
     gen_kde_path = f"./output/{dataset_name}_KDE_samples.npy"
     # if os.path.exists(gen_kde_path):
@@ -256,41 +256,38 @@ def process_file(filepath: str):
         gen_vae_bc = bc_matrix(gen_vae_t)
         gen_iwae_t = np.expm1(gen_iwae.T)
         gen_iwae_bc = bc_matrix(gen_iwae_t)
-        plot_pca(orig_bc, gen_vae_bc, "VAE_BC", dataset_name)
-        plot_pca(orig_bc, gen_iwae_bc, "IWAE_BC", dataset_name)
+        plot_nmds(orig_bc, gen_vae_bc, "VAE_BC", dataset_name)
+        plot_nmds(orig_bc, gen_iwae_bc, "IWAE_BC", dataset_name)
         gen_vae_jac = jaccard_matrix(gen_vae_t)
         gen_iwae_jac = jaccard_matrix(gen_iwae_t)
-        plot_pca(orig_jac, gen_vae_jac, "VAE_Jaccard", dataset_name)
-        plot_pca(orig_jac, gen_iwae_jac, "IWAE_Jaccard", dataset_name)
+        plot_nmds(orig_jac, gen_vae_jac, "VAE_Jaccard", dataset_name)
+        plot_nmds(orig_jac, gen_iwae_jac, "IWAE_Jaccard", dataset_name)
 
-    # if os.path.exists(gen_diff_path):
-    #     gen_diff = np.load(gen_diff_path)
-    #     gen_diff_t = np.expm1(gen_diff.T)
-    #     pdb.set_trace()
-    #     gen_diff_bc = bc_matrix(gen_diff_t)
-    #     plot_umap(orig_bc, gen_diff_bc, "Diffusion_BC", dataset_name)
-    #     gen_diff_jac = jaccard_matrix(gen_diff_t)
-    #     plot_umap(orig_jac, gen_diff_jac, "Diffusion_Jaccard", dataset_name)
+    if os.path.exists(gen_diff_path):
+        gen_diff = np.load(gen_diff_path)
+        gen_diff[gen_diff < 0] = 0  # Ensure no negative values
+        gen_diff_t = np.expm1(gen_diff.T)
+        pdb.set_trace()
+        gen_diff_bc = bc_matrix(gen_diff_t)
+        plot_nmds(orig_bc, gen_diff_bc, "Diffusion_BC", dataset_name)
+        gen_diff_jac = jaccard_matrix(gen_diff_t)
+        plot_nmds(orig_jac, gen_diff_jac, "Diffusion_Jaccard", dataset_name)
 
-    # if os.path.exists(gen_kde_path):
-    #     gen_kde = np.load(gen_kde_path)
-    #     gen_kde_t = np.expm1(gen_kde.T)
-    #     gen_kde_bc = bc_matrix(gen_kde_t)
-    #     plot_pca(orig_bc, gen_kde_bc, "KDE_BC", dataset_name)
-    #     plot_tsne(orig_bc, gen_kde_bc, "KDE_BC", dataset_name)
-    #     plot_umap(orig_bc, gen_kde_bc, "KDE_BC", dataset_name)
-    #     gen_kde_jac = jaccard_matrix(gen_kde_t)
-    #     plot_pca(orig_jac, gen_kde_jac, "KDE_Jaccard", dataset_name)
-    #     plot_tsne(orig_jac, gen_kde_jac, "KDE_Jaccard", dataset_name)
-    #     plot_umap(orig_jac, gen_kde_jac, "KDE_Jaccard", dataset_name)
-    # ----- ranking and output -----
+    if os.path.exists(gen_kde_path):
+        gen_kde = np.load(gen_kde_path)
+        gen_kde[gen_kde < 0] = 0  # Ensure no negative values
+        gen_kde_t = np.expm1(gen_kde.T)
+        gen_kde_bc = bc_matrix(gen_kde_t)
+        plot_pca(orig_bc, gen_kde_bc, "KDE_BC", dataset_name)
+        gen_kde_jac = jaccard_matrix(gen_kde_t)
+        plot_pca(orig_jac, gen_kde_jac, "KDE_Jaccard", dataset_name)
 
 
 # NOTE TCGA will *not* run on MCMC because of the high dimensionality
 if __name__ == "__main__":
     os.makedirs("./output", exist_ok=True)
 
-    process_file("./input/ibd.csv")
+    # process_file("./input/ibd.csv")
     process_file("./input/momspi16s.csv")
     process_file("./input/TCGA_HNSC_rawcount_data_t.csv")
     # process_file("./input/gene_MTB_healthy_cleaned_t.csv")
