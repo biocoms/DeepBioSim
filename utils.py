@@ -193,21 +193,21 @@ def plot_violin(
 
 
 def shannon(mat):
-    proportions = mat / (mat.sum(axis=0, keepdims=True) + EPS)
+    # input n*p
+    proportions = mat / (mat.sum(axis=1, keepdims=True) + EPS)
     # replace 0s and nans with 1
     proportions = np.where(proportions > 0, proportions, 1)  # avoid log(0)
-    return -np.sum(proportions * np.log(proportions), axis=0)
+    return -np.sum(proportions * np.log(proportions), axis=1)
 
 
 def richness(mat: np.ndarray, threshold: float = 0.0) -> np.ndarray:
-    # mat > threshold gives a boolean array; sum over features axis
-    return np.sum(mat > threshold, axis=0)
+    # mat > threshold gives a boolean array; sum over features axis; input n*p
+    return np.sum(mat > threshold, axis=1)
 
 
 def bc_matrix(mat: np.ndarray) -> np.ndarray:
-    # X: (n_samples, n_taxa) array of counts or relative abundances
-    # If counts, you may want to convert to relative abundances per sample:
-    mat += EPS
+    mat += EPS  # input n*p
+    # pdb.set_trace()
     X_rel = mat / mat.sum(axis=1, keepdims=True)
 
     # Compute pairwise Bray–Curtis dissimilarities
@@ -230,8 +230,8 @@ def jaccard_matrix(mat: np.ndarray) -> np.ndarray:
         (n_samples, n_samples) array of Jaccard distances between samples
     """
     # 1) Convert to boolean presence/absence
+    # input n*p
     presence = mat > 0.5
-    # import pdb
 
     # pdb.set_trace()
 
