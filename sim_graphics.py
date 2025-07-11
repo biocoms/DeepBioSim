@@ -1,4 +1,4 @@
-# sim_gene.py
+# sim_graphics.py
 import os, time
 import pandas as pd
 import torch
@@ -161,6 +161,7 @@ def process_file(filepath: str):
 
     # NOTE shannon diversity can't compute negative values so it's not included in the analysis
     # H_orig = shannon(data)
+    # pdb.set_trace()
     # H_vae = shannon(gen_vae)
     # H_iwae = shannon(gen_iwae)
     # H_diff = shannon(gen_diff)
@@ -249,25 +250,25 @@ def process_file(filepath: str):
     orig_bc = bc_matrix(orig_t)
     orig_jac = jaccard_matrix(orig_t)
 
-    if os.path.exists(gen_vae_path):
-        gen_vae = np.load(gen_vae_path)
-        gen_iwae = np.load(gen_iwae_path)
-        gen_vae_t = np.expm1(gen_vae.T)
-        gen_vae_bc = bc_matrix(gen_vae_t)
-        gen_iwae_t = np.expm1(gen_iwae.T)
-        gen_iwae_bc = bc_matrix(gen_iwae_t)
-        plot_nmds(orig_bc, gen_vae_bc, "VAE_BC", dataset_name)
-        plot_nmds(orig_bc, gen_iwae_bc, "IWAE_BC", dataset_name)
-        gen_vae_jac = jaccard_matrix(gen_vae_t)
-        gen_iwae_jac = jaccard_matrix(gen_iwae_t)
-        plot_nmds(orig_jac, gen_vae_jac, "VAE_Jaccard", dataset_name)
-        plot_nmds(orig_jac, gen_iwae_jac, "IWAE_Jaccard", dataset_name)
+    # if os.path.exists(gen_vae_path):
+    #     gen_vae = np.load(gen_vae_path)
+    #     gen_iwae = np.load(gen_iwae_path)
+    #     gen_vae_t = np.expm1(gen_vae.T)
+    #     gen_vae_bc = bc_matrix(gen_vae_t)
+    #     gen_iwae_t = np.expm1(gen_iwae.T)
+    #     gen_iwae_bc = bc_matrix(gen_iwae_t)
+    #     plot_nmds(orig_bc, gen_vae_bc, "VAE_BC", dataset_name)
+    #     plot_nmds(orig_bc, gen_iwae_bc, "IWAE_BC", dataset_name)
+    #     gen_vae_jac = jaccard_matrix(gen_vae_t)
+    #     gen_iwae_jac = jaccard_matrix(gen_iwae_t)
+    #     plot_nmds(orig_jac, gen_vae_jac, "VAE_Jaccard", dataset_name)
+    #     plot_nmds(orig_jac, gen_iwae_jac, "IWAE_Jaccard", dataset_name)
 
     if os.path.exists(gen_diff_path):
+        pdb.set_trace()
         gen_diff = np.load(gen_diff_path)
         gen_diff[gen_diff < 0] = 0  # Ensure no negative values
         gen_diff_t = np.expm1(gen_diff.T)
-        pdb.set_trace()
         gen_diff_bc = bc_matrix(gen_diff_t)
         plot_nmds(orig_bc, gen_diff_bc, "Diffusion_BC", dataset_name)
         gen_diff_jac = jaccard_matrix(gen_diff_t)
@@ -288,14 +289,14 @@ if __name__ == "__main__":
     os.makedirs("./output", exist_ok=True)
 
     # process_file("./input/ibd.csv")
-    process_file("./input/momspi16s.csv")
-    process_file("./input/TCGA_HNSC_rawcount_data_t.csv")
-    # process_file("./input/gene_MTB_healthy_cleaned_t.csv")
+    # process_file("./input/momspi16s.csv")
+    # process_file("./input/TCGA_HNSC_rawcount_data_t.csv")
+    process_file("./input/gene_MTB_healthy_cleaned_t.csv")
     # process_file("./input/gene_MTB_caries_cleaned_t.csv")
     # process_file("./input/gene_MTB_periodontitis_cleaned_t.csv")
     # process_file("./input/gene_MGB_periodontitis_transposed.csv")
     # process_file("./input/gene_MGB_caries_transposed.csv")
     # process_file("./input/gene_MGB_healthy_transposed.csv")
-    process_file("./input/GSE165512_CD.csv")
-    process_file("./input/GSE165512_Control.csv")
-    process_file("./input/GSE165512_UC.csv")
+    # process_file("./input/GSE165512_CD.csv")
+    # process_file("./input/GSE165512_Control.csv")
+    # process_file("./input/GSE165512_UC.csv")

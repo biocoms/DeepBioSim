@@ -6,6 +6,7 @@ from sklearn.manifold import TSNE, MDS
 from umap import UMAP
 import os
 from scipy.spatial.distance import pdist, squareform
+import pdb
 
 EPS = 1e-8
 
@@ -192,7 +193,7 @@ def plot_violin(
 
 
 def shannon(mat):
-    proportions = mat / mat.sum(axis=0, keepdims=True)
+    proportions = mat / (mat.sum(axis=0, keepdims=True) + EPS)
     # replace 0s and nans with 1
     proportions = np.where(proportions > 0, proportions, 1)  # avoid log(0)
     return -np.sum(proportions * np.log(proportions), axis=0)
@@ -240,6 +241,21 @@ def jaccard_matrix(mat: np.ndarray) -> np.ndarray:
 
     # 3) Convert to a full square form
     return squareform(jc_condensed)
+
+
+def pearson_corr(x: np.ndarray, y: np.ndarray) -> float:
+    if x.shape != y.shape:
+        raise ValueError("x and y must have the same shape")
+
+    # center
+    x_cent = x - np.mean(x)
+    y_cent = y - np.mean(y)
+
+    # covariance and norms
+    cov = np.sum(x_cent * y_cent)
+    norm = np.sqrt(np.sum(x_cent**2) * np.sum(y_cent**2))
+
+    return cov / (norm + EPS)
 
 
 def save_generated_samples(
