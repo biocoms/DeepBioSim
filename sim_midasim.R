@@ -4,7 +4,7 @@ library(parallel)
 
 # 1. Specify your input CSV (in input/).  
 #    Change this to whatever file you want to simulate from.
-input_file <- "input/TCGA_HNSC_rawcount_data_t.csv"
+input_file <- "input/GSE165512_CD.csv"
 
 # 2. Derive a base name for your output
 input_name  <- tools::file_path_sans_ext(basename(input_file))

@@ -15,6 +15,8 @@ from vae import VAE, train as train_vae
 from iwae import IWAE, train as train_iwae
 from diffusion import DiffusionModel, train as train_diffusion
 
+from utils import match_columns
+
 
 # --------------------
 # Utilities
@@ -44,13 +46,19 @@ def main():
     )
     # Required arguments
     parser.add_argument(
-        "--input", required=True, help="Path to input CSV file of counts"
-    )
-    parser.add_argument(
-        "--method",
+        "--simulation_method",
         required=True,
         choices=["kde", "vae", "iwae", "diffusion"],
         help="Generative method to use",
+    )
+    parser.add_argument(
+        "--matching_method",
+        default="rank",
+        choices=["rank", "mae", "corr"],
+        help="Method for matching taxa/gene in generated data",
+    )
+    parser.add_argument(
+        "--input", required=True, help="Path to input CSV file of counts"
     )
     parser.add_argument(
         "--output_folder", required=True, help="Directory to save generated samples"
@@ -102,7 +110,7 @@ def main():
 
     # Load and preprocess data
     dataset_name = os.path.splitext(os.path.basename(args.input))[0]
-    print(f"\n=== Processing {dataset_name}: method={args.method} ===")
+    print(f"\n=== Processing {dataset_name}: method={args.simulation_method} ===")
     df = pd.read_csv(args.input, index_col=0)
     data = df.values.T  # shape: (p_taxa, n_samples)
     data_log = np.log1p(data)
@@ -117,7 +125,7 @@ def main():
     )
 
     # Generate synthetic samples
-    if args.method == "vae":
+    if args.simulation_method == "vae":
         # Train VAE
         start = time.perf_counter()
         vae = VAE(input_dim, args.hidden_dim, args.latent_dim).to(device)
@@ -130,7 +138,7 @@ def main():
         elapsed = time.perf_counter() - start
         print(f"VAE done in {elapsed:.2f}s")
 
-    elif args.method == "iwae":
+    elif args.simulation_method == "iwae":
         # Train IWAE
         start = time.perf_counter()
         iwae = IWAE(input_dim, args.latent_dim, args.hidden_dim, args.K).to(device)
@@ -142,7 +150,7 @@ def main():
         elapsed = time.perf_counter() - start
         print(f"IWAE done in {elapsed:.2f}s")
 
-    elif args.method == "diffusion":
+    elif args.simulation_method == "diffusion":
         # Train Diffusion model
         start = time.perf_counter()
         diff = DiffusionModel(input_dim, args.hidden_dim, timesteps=args.time_steps).to(
@@ -159,7 +167,7 @@ def main():
         elapsed = time.perf_counter() - start
         print(f"Diffusion done in {elapsed:.2f}s")
 
-    elif args.method == "kde":
+    elif args.simulation_method == "kde":
         # KDE sampling
         start = time.perf_counter()
         kde = FFTKDE(kernel="gaussian").fit(data_log)
@@ -170,37 +178,22 @@ def main():
         print(f"KDE done in {elapsed:.2f}s")
 
     else:
-        raise ValueError(f"Unknown method: {args.method}")
+        raise ValueError(f"Unknown method: {args.simulation_method}")
 
     # Transform back from log1p domain and round
     gen_exp = np.expm1(gen)
     gen_counts = np.round(gen_exp).astype(int)
+    gen_np = gen_counts.T  # shape: (n_samples, p_taxa)
+    out_np = match_columns(df.values, gen_np, mode=args.matching_method)
 
     # Build DataFrame (features × samples)
-    out_df = pd.DataFrame(gen_counts.T, index=df.index, columns=df.columns)
-    base_out = os.path.join(args.output_folder, f"{dataset_name}_{args.method}")
-
-    # -------------------------
-    # Feature ranking & label assignment
-    # -------------------------
-    # Original ranking by squared-sum across samples
-    orig_scores = np.sum(np.square(df.values), axis=0)
-    # Order original feature names descending
-    orig_order = list(df.columns[np.argsort(orig_scores)[::-1]])
-
-    # Generated ranking by squared-sum
-    gen_scores = np.sum(np.square(gen_counts), axis=1)  # axis=1 over features
-    # Sort generated feature indices descending
-    gen_idx_sorted = np.argsort(gen_scores)[::-1]
-
-    # Create matched DataFrame: reorder rows of generated data by gen_idx
-    gen_sorted = out_df.iloc[:, gen_idx_sorted].copy()
-    # Assign original feature names to these rows in orig rank order
-    gen_sorted.columns = orig_order
-
+    base_out = os.path.join(
+        args.output_folder, f"{dataset_name}_{args.simulation_method}"
+    )
     # Save matched CSV
     match_file = base_out + ".csv"
-    gen_sorted.to_csv(match_file)
+    out_df = pd.DataFrame(out_np, index=df.index, columns=df.columns)
+    out_df.to_csv(match_file)
     print(f"Saved matched synthetic data to {match_file}")
 
 

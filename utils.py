@@ -6,6 +6,9 @@ from sklearn.manifold import TSNE, MDS
 from umap import UMAP
 import os
 from scipy.spatial.distance import pdist, squareform
+from scipy.optimize import linear_sum_assignment
+from scipy.stats import pearsonr
+
 import pdb
 
 EPS = 1e-8
@@ -256,6 +259,84 @@ def pearson_corr(x: np.ndarray, y: np.ndarray) -> float:
     norm = np.sqrt(np.sum(x_cent**2) * np.sum(y_cent**2))
 
     return cov / (norm + EPS)
+
+
+def ci95(vals):
+    a = np.array(vals)
+    return a.mean(), np.percentile(a, 2.5), np.percentile(a, 97.5)
+
+
+def match_columns(data: np.ndarray, gen: np.ndarray, mode: str = "mae") -> np.ndarray:
+    """
+    Permute the columns of `gen` so they best match `data`, either by
+    minimizing column-wise MAE or maximizing Pearson correlation.
+
+    Args:
+        data: (n_samples, p) real-data matrix
+        gen:  (n_samples, p) generated-data matrix
+        mode: "mae"  → minimize mean absolute error per column
+              "corr" → maximize Pearson r per column
+
+    Returns:
+        gen_reordered: (n_samples, p) same as gen but with columns permuted
+    """
+    n, p = data.shape
+    if gen.shape != (n, p):
+        raise ValueError("data and gen must have the same shape")
+
+    if mode == "rank":
+        # 1) compute squared-sum scores for original and generated features
+        orig_scores = np.sum(data**2, axis=0)  # length p
+        gen_scores = np.sum(gen**2, axis=0)  # length p
+        # 2) sort indices descending by score
+        orig_order = np.argsort(orig_scores)[::-1]
+        gen_order = np.argsort(gen_scores)[::-1]
+        # 3) map each original-feature position to the corresponding generated index
+        col_idx = np.empty(p, dtype=int)
+        col_idx[orig_order] = gen_order
+        # 4) permute generated columns
+        return gen[:, col_idx]
+
+    C = np.zeros((p, p), dtype=float)
+
+    # Precompute which columns are constant
+    data_const = np.all(data == data[:1, :], axis=0)
+    gen_const = np.all(gen == gen[:1, :], axis=0)
+
+    for i in range(p):
+        x = data[:, i]
+        for j in range(p):
+            y = gen[:, j]
+
+            if mode == "mae":
+                C[i, j] = np.mean(np.abs(x - y))
+
+            elif mode == "corr":
+                # if either column is constant, r is undefined → give max cost
+                if data_const[i] or gen_const[j]:
+                    C[i, j] = 1.0  # correlation r in [-1,1], cost = -r so worst is +1
+                else:
+                    r, _ = pearsonr(x, y)
+                    # if pearsonr somehow still yields nan, treat as zero correlation
+                    if np.isnan(r):
+                        r = 0.0
+                    C[i, j] = -r
+
+            else:
+                raise ValueError("mode must be 'mae' or 'corr'")
+
+    # catch any remaining nan or inf
+    max_cost = np.nanmax(C[np.isfinite(C)])
+    C = np.nan_to_num(
+        C, nan=(max_cost + 1), posinf=(max_cost + 1), neginf=(max_cost + 1)
+    )
+
+    # solve optimal assignment
+    row_idx, col_idx = linear_sum_assignment(C)
+
+    # permute gen's columns
+    gen_reordered = gen[:, col_idx]
+    return gen_reordered
 
 
 def save_generated_samples(
