@@ -8,9 +8,9 @@ import torch.optim as optim
 import numpy as np
 from scipy.stats import ttest_ind
 from KDEpy import FFTKDE
-from vae import VAE, train as train_vae, k_fold_validation_vae
-from iwae import IWAE, train as train_iwae, k_fold_validation_iwae
-from kde_mcmc import mcmc_sampling
+from models.vae import VAE, train as train_vae, k_fold_validation_vae
+from models.iwae import IWAE, train as train_iwae, k_fold_validation_iwae
+from models.kde_mcmc import mcmc_sampling
 from mks_test import mkstest
 from utils import plot_pca, plot_tsne, svd_reduce, svd_reconstruct, shannon
 

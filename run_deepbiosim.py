@@ -10,10 +10,10 @@ from torch.utils.data import TensorDataset, DataLoader
 import torch.optim as optim
 from KDEpy import FFTKDE
 
-from kde_mcmc import kde_sampling
-from vae import VAE, train as train_vae
-from iwae import IWAE, train as train_iwae
-from diffusion import DiffusionModel, train as train_diffusion
+from models.kde_mcmc import kde_sampling
+from models.vae import VAE, train as train_vae
+from models.iwae import IWAE, train as train_iwae
+from models.diffusion import DiffusionModel, train as train_diffusion
 
 from utils import match_columns
 
