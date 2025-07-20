@@ -15,18 +15,25 @@ EPS = 1e-8
 
 
 def plot_pca(orig: np.ndarray, gen: np.ndarray, method_name: str, dataset_name: str):
+    n_orig, n_gen = orig.shape[0], gen.shape[0]
+    if n_orig + n_gen > 3000:
+        idx_orig = np.random.choice(n_orig, 1500, replace=False)
+        idx_gen = np.random.choice(n_gen, 1500, replace=False)
+        orig = orig[idx_orig]
+        gen = gen[idx_gen]
     combined = np.vstack([orig, gen])
     pca = PCA(n_components=2)
     comp2d = pca.fit_transform(combined)
     orig2d = comp2d[: orig.shape[0]]
     gen2d = comp2d[orig.shape[0] :]
     plt.figure(figsize=(8, 6))
-    plt.scatter(orig2d[:, 0], orig2d[:, 1], s=10, alpha=0.5, label="Original")
-    plt.scatter(gen2d[:, 0], gen2d[:, 1], s=10, alpha=0.5, label=method_name)
-    # plt.title(f"{dataset_name}: Original vs {method_name}")
-    plt.xlabel("PC1")
-    plt.ylabel("PC2")
-    # plt.legend()
+    plt.scatter(orig2d[:, 0], orig2d[:, 1], s=10, alpha=0.5, c="#1f77b4")
+    plt.scatter(gen2d[:, 0], gen2d[:, 1], s=10, alpha=0.5, c="#ff7f0e")
+    ax = plt.gca()
+    ax.set_xticks([])
+    ax.set_yticks([])
+    ax.set_xlabel("")
+    ax.set_ylabel("")
     plt.tight_layout()
     out_path = f"./output/{dataset_name}_{method_name}_pca.eps"
     plt.savefig(out_path, format="eps", dpi=1200)
@@ -39,18 +46,25 @@ def plot_tsne(orig: np.ndarray, gen: np.ndarray, method_name: str, dataset_name:
     Generate and save a t-SNE scatter plot comparing original and generated samples.
     Same signature as plot_comparison.
     """
-
+    n_orig, n_gen = orig.shape[0], gen.shape[0]
+    if n_orig + n_gen > 3000:
+        idx_orig = np.random.choice(n_orig, 1500, replace=False)
+        idx_gen = np.random.choice(n_gen, 1500, replace=False)
+        orig = orig[idx_orig]
+        gen = gen[idx_gen]
     combined = np.vstack([orig, gen])
-    tsne = TSNE(n_components=2, random_state=42)
+    tsne = TSNE(n_components=2, random_state=42, perplexity=10)
     emb = tsne.fit_transform(combined)
     orig_emb = emb[: orig.shape[0]]
     gen_emb = emb[orig.shape[0] :]
     plt.figure(figsize=(8, 6))
-    plt.scatter(orig_emb[:, 0], orig_emb[:, 1], s=10, alpha=0.5, label="Original")
-    plt.scatter(gen_emb[:, 0], gen_emb[:, 1], s=10, alpha=0.5, label=method_name)
-    # plt.title(f"{dataset_name}: Original vs {method_name} (t-SNE)")
-    plt.xlabel("t-SNE 1")
-    plt.ylabel("t-SNE 2")
+    plt.scatter(orig_emb[:, 0], orig_emb[:, 1], s=10, alpha=0.5, c="#1f77b4")
+    plt.scatter(gen_emb[:, 0], gen_emb[:, 1], s=10, alpha=0.5, c="#ff7f0e")
+    ax = plt.gca()
+    ax.set_xticks([])
+    ax.set_yticks([])
+    ax.set_xlabel("")
+    ax.set_ylabel("")
     # plt.legend()
     plt.tight_layout()
     out_path = f"./output/{dataset_name}_{method_name}_tsne.eps"

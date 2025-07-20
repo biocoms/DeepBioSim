@@ -97,8 +97,9 @@ class VAE(nn.Module):
         mu, logvar = torch.chunk(stats, 2, dim=-1)
 
         # clamp and softplus on logvar
-        logvar = torch.clamp(logvar, -5.0, 5.0)
-        scale = F.softplus(logvar) + 1e-6
+        logvar = torch.clamp(logvar, -10.0, 10.0)
+        # scale = F.softplus(logvar) + 1e-6
+        scale = torch.exp(0.5 * logvar)
 
         # reparameterize
         z = mu + scale * torch.randn_like(mu)

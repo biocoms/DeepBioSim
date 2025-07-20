@@ -54,12 +54,12 @@ class IWAE(nn.Module):
         mu, logvar = self.encode(x)
         # print("DEBUG: pre-clamp logvar:", logvar.min().item(), logvar.max().item())
 
-        logvar = torch.clamp(logvar, -5.0, 5.0)
-        scale = F.softplus(logvar) + 1e-6
+        logvar = torch.clamp(logvar, -10.0, 10.0)
+        # scale = F.softplus(logvar) + 1e-6
 
         # print("scale (std) range:", scale.min().item(), scale.max().item())
 
-        std = scale
+        std = torch.exp(0.5 * logvar)
         eps = torch.randn(self.K, batch_size, self.latent_dim, device=x.device)
         z = mu.unsqueeze(0) + eps * std.unsqueeze(0)
         # print("DEBUG z:", torch.isnan(z).any(), z.mean().item(), z.std().item())

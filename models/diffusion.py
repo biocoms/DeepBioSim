@@ -5,11 +5,19 @@ import torch.optim as optim
 from tqdm import tqdm
 
 
-def linear_beta_schedule(T, beta_start=1e-4, beta_end=0.02):
+# https://dzdata.medium.com/intro-to-diffusion-model-part-4-62bd94bd93fd
+def cosine_beta_schedule(T, s=0.008):
     """
-    Linear schedule from beta_start to beta_end over T timesteps.
+    Cosine schedule as proposed in https://arxiv.org/abs/2102.09672
     """
-    return torch.linspace(beta_start, beta_end, T)
+
+    def f(t):
+        return torch.cos(((t / T) + s) / (1 + s) * torch.pi * 0.5) ** 2
+
+    x = torch.linspace(0, T, T + 1)
+    alphas_cumprod = f(x) / f(torch.tensor([0]))
+    betas = 1 - (alphas_cumprod[1:] / alphas_cumprod[:-1])
+    return torch.clip(betas, 0.0001, 0.9999)
 
 
 class DiffusionModel(nn.Module):
@@ -18,9 +26,7 @@ class DiffusionModel(nn.Module):
     Takes input_dim features, maps (x_t, t) → predicted noise.
     """
 
-    def __init__(
-        self, input_dim, hidden_dim=256, timesteps=1000, beta_start=1e-4, beta_end=5e-3
-    ):
+    def __init__(self, input_dim, hidden_dim=256, timesteps=1000):
         super().__init__()
         self.timesteps = timesteps
         # Score network: predict noise given noisy x_t and time index
@@ -33,15 +39,17 @@ class DiffusionModel(nn.Module):
             nn.Linear(hidden_dim, input_dim),
         )
         # Precompute noise schedule
-        betas = linear_beta_schedule(timesteps, beta_start, beta_end)
+        betas = cosine_beta_schedule(timesteps)
         alphas = 1 - betas
         alpha_bar = torch.cumprod(alphas, dim=0)
+        sqrt_ab = torch.sqrt(alpha_bar)  # √(ᾱ_t)
+        sqrt_1mab = torch.sqrt(1 - alpha_bar)  # √(1 - ᾱ_t)
 
         self.register_buffer("betas", betas)
         self.register_buffer("alphas", alphas)
         self.register_buffer("alpha_bar", alpha_bar)
-        self.register_buffer("sqrt_ab", torch.sqrt(alpha_bar))
-        self.register_buffer("sqrt_omb", torch.sqrt(1 - alpha_bar))
+        self.register_buffer("sqrt_ab", sqrt_ab)
+        self.register_buffer("sqrt_1mab", sqrt_1mab)
 
     def forward(self, x0):
         """
@@ -51,8 +59,8 @@ class DiffusionModel(nn.Module):
         t = torch.randint(0, self.timesteps, (b,), device=x0.device)
         noise = torch.randn_like(x0)
         # gather schedules at t
-        ab_t = self.sqrt_ab[t].unsqueeze(-1)  # sqrt(alpha_bar_t)
-        omb_t = self.sqrt_omb[t].unsqueeze(-1)  # sqrt(1 - alpha_bar_t)
+        ab_t = self.sqrt_ab[t].unsqueeze(-1)
+        omb_t = self.sqrt_1mab[t].unsqueeze(-1)
         x_t = ab_t * x0 + omb_t * noise
         # normalize t ∈ [0,1]
         t_norm = t.float() / (self.timesteps - 1)
@@ -61,52 +69,31 @@ class DiffusionModel(nn.Module):
         return nn.functional.mse_loss(pred_noise, noise)
 
     def sample(self, n_samples, device):
-        x = torch.randn(n_samples, self.net[-1].out_features, device=device)
+        input_dim = self.net[0].in_features - 1  # subtract 1 for time embedding
+        x = torch.randn(n_samples, input_dim, device=device)
         for t in reversed(range(self.timesteps)):
             beta_t = self.betas[t]
             alpha_t = self.alphas[t]
             alpha_bar_t = self.alpha_bar[t]
-            if t % (self.timesteps // 5) == 0 or t < 5:
-                sqrt_alpha_t = torch.sqrt(alpha_t)
-                sqrt_omb_t = torch.sqrt(1 - alpha_bar_t)
-                sigma = torch.sqrt(beta_t)
-                ratio = beta_t / (sqrt_omb_t + 1e-8)
-                # print(
-                #     f"[sample-debug] t={t:4d} | beta={beta_t:.3e}, "
-                #     f"ᾱ={alpha_bar_t:.3e}, √α={sqrt_alpha_t:.3f}, "
-                #     f"√(1−ᾱ)={sqrt_omb_t:.3f}, σ={sigma:.3e}, ratio={ratio:.3e}"
-                # )
+            alpha_bar_t_m1 = (
+                self.alpha_bar[t - 1] if t > 0 else torch.tensor(1.0, device=device)
+            )
             # Network input
-            t_batch = torch.full((n_samples,), t, device=device, dtype=torch.long)
-            t_norm = t_batch.float() / (self.timesteps - 1)
-            inp = torch.cat([x, t_norm.unsqueeze(-1)], dim=1)
+            t_emb = t / (self.timesteps - 1)
+            inp = torch.cat([x, t_emb * torch.ones(n_samples, 1, device=device)], dim=1)
             eps_pred = self.net(inp)
-            # eps_pred = torch.clamp(eps_pred, -1.0, 1.0)
-            # debug at key timesteps
-            # if t % (self.timesteps // 5) == 0 or t < 3:
-            #     print(
-            #         f"[sample] t={t}: eps_pred mean={eps_pred.mean().item():.4f}, std={eps_pred.std().item():.4f}"
-            #     )
             # Compute posterior mean via DDPM formula
-            sqrt_alpha_t = torch.sqrt(alpha_t)
-            sqrt_one_minus_ab = torch.sqrt(1 - alpha_bar_t)
-            # (x_t - beta_t/√(1-ᾱ_t) * ε) / √α_t
-            mean = (x - (beta_t / sqrt_one_minus_ab) * eps_pred) / sqrt_alpha_t
-
-            # if torch.isnan(mean).any():
-            #     print(f"[sample] NaNs in mean at t={t}, 1-ᾱ_t={1-alpha_bar_t:.2e}")
+            mean = (x - (beta_t / torch.sqrt(1 - alpha_bar_t)) * eps_pred) / torch.sqrt(
+                alpha_t
+            )
+            post_beta_t = beta_t * (1 - alpha_bar_t_m1) / (1 - alpha_bar_t)
+            post_sigma_t = torch.sqrt(post_beta_t)
 
             if t > 0:
                 noise = torch.randn_like(x)
-                sigma = torch.sqrt(beta_t)
-                x = mean + sigma * noise
-                # if t % (self.timesteps // 5) == 0 or t < 3:
-                #     print(
-                #         f"[sample] t={t}: post step x mean={x.mean().item():.4f}, std={x.std().item():.4f}"
-                #     )
+                x = mean + post_sigma_t * noise
             else:
                 x = mean
-        # print(f"[sample] final x: mean={x.mean().item():.4f}, std={x.std().item():.4f}")
         return x.cpu().numpy()
 
 
