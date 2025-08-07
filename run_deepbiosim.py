@@ -141,7 +141,7 @@ def main():
     elif args.simulation_method == "iwae":
         # Train IWAE
         start = time.perf_counter()
-        iwae = IWAE(input_dim, args.latent_dim, args.hidden_dim, args.K).to(device)
+        iwae = IWAE(input_dim, args.hidden_dim, args.latent_dim, args.K).to(device)
         optimizer = optim.Adam(iwae.parameters(), lr=args.learning_rate)
         train_iwae(iwae, loader, optimizer, num_epochs=args.num_epochs, device=device)
         iwae.eval()

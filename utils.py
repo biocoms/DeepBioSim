@@ -1,4 +1,5 @@
 # utils.py
+import warnings
 import matplotlib.pyplot as plt
 import numpy as np
 from sklearn.decomposition import PCA
@@ -9,16 +10,18 @@ from scipy.spatial.distance import pdist, squareform
 from scipy.optimize import linear_sum_assignment
 from scipy.stats import pearsonr
 
+warnings.filterwarnings("ignore")
+
 import pdb
 
 EPS = 1e-8
 
 
-def plot_pca(orig: np.ndarray, gen: np.ndarray, method_name: str, dataset_name: str):
+def plot_pca(orig: np.ndarray, gen: np.ndarray, method_name: str, dataset_name: str, num_samples: int = 1500):
     n_orig, n_gen = orig.shape[0], gen.shape[0]
-    if n_orig + n_gen > 3000:
-        idx_orig = np.random.choice(n_orig, 1500, replace=False)
-        idx_gen = np.random.choice(n_gen, 1500, replace=False)
+    if n_orig + n_gen > 2 * num_samples:
+        idx_orig = np.random.choice(n_orig, num_samples, replace=False)
+        idx_gen = np.random.choice(n_gen, num_samples, replace=False)
         orig = orig[idx_orig]
         gen = gen[idx_gen]
     combined = np.vstack([orig, gen])
@@ -41,15 +44,15 @@ def plot_pca(orig: np.ndarray, gen: np.ndarray, method_name: str, dataset_name: 
     print(f"Saved PCA plot to {out_path}")
 
 
-def plot_tsne(orig: np.ndarray, gen: np.ndarray, method_name: str, dataset_name: str):
+def plot_tsne(orig: np.ndarray, gen: np.ndarray, method_name: str, dataset_name: str, num_samples: int = 1500):
     """
     Generate and save a t-SNE scatter plot comparing original and generated samples.
     Same signature as plot_comparison.
     """
     n_orig, n_gen = orig.shape[0], gen.shape[0]
-    if n_orig + n_gen > 3000:
-        idx_orig = np.random.choice(n_orig, 1500, replace=False)
-        idx_gen = np.random.choice(n_gen, 1500, replace=False)
+    if n_orig + n_gen > 2 * num_samples:
+        idx_orig = np.random.choice(n_orig, num_samples, replace=False)
+        idx_gen = np.random.choice(n_gen, num_samples, replace=False)
         orig = orig[idx_orig]
         gen = gen[idx_gen]
     combined = np.vstack([orig, gen])
@@ -73,23 +76,31 @@ def plot_tsne(orig: np.ndarray, gen: np.ndarray, method_name: str, dataset_name:
     print(f"Saved t-SNE plot to {out_path}")
 
 
-def plot_umap(orig: np.ndarray, gen: np.ndarray, method_name: str, dataset_name: str):
+def plot_umap(orig: np.ndarray, gen: np.ndarray, method_name: str, dataset_name: str, num_samples: int = 1500):
     """
     Generate and save a UMAP scatter plot comparing original and generated samples.
     Same signature as plot_pca and plot_tsne.
     """
-
+    n_orig, n_gen = orig.shape[0], gen.shape[0]
+    if n_orig + n_gen > 2 * num_samples:
+        idx_orig = np.random.choice(n_orig, num_samples, replace=False)
+        idx_gen = np.random.choice(n_gen, num_samples, replace=False)
+        orig = orig[idx_orig]
+        gen = gen[idx_gen]
     combined = np.vstack([orig, gen])
     reducer = UMAP(n_components=2)
     emb = reducer.fit_transform(combined)
     orig_emb = emb[: orig.shape[0]]
     gen_emb = emb[orig.shape[0] :]
     plt.figure(figsize=(8, 6))
-    plt.scatter(orig_emb[:, 0], orig_emb[:, 1], s=10, alpha=0.5, label="Original")
-    plt.scatter(gen_emb[:, 0], gen_emb[:, 1], s=10, alpha=0.5, label=method_name)
+    plt.scatter(orig_emb[:, 0], orig_emb[:, 1], s=10, alpha=0.5, c="#1f77b4")
+    plt.scatter(gen_emb[:, 0], gen_emb[:, 1], s=10, alpha=0.5, c="#ff7f0e")
     # plt.title(f"{dataset_name}: Original vs {method_name} (UMAP)")
-    plt.xlabel("UMAP 1")
-    plt.ylabel("UMAP 2")
+    ax = plt.gca()
+    ax.set_xticks([])
+    ax.set_yticks([])
+    ax.set_xlabel("")
+    ax.set_ylabel("")
     # plt.legend()
     plt.tight_layout()
     out_path = f"./output/{dataset_name}_{method_name}_umap.eps"
@@ -167,6 +178,7 @@ def plot_violin(
     Plot and save a violin plot of one or more 1D vectors side by side,
     with no baseline and y-limits set by the global min/max across all columns.
     """
+    # pdb.set_trace()
     os.makedirs(out_dir, exist_ok=True)
 
     fig, ax = plt.subplots(figsize=(6, 4))
@@ -202,16 +214,18 @@ def plot_violin(
 
     plt.tight_layout()
     out_path = os.path.join(
-        out_dir, f"{dataset_name}_{metric_name.replace(' ', '_')}_violin.eps"
+        out_dir, f"{dataset_name}_{metric_name.replace(' ', '_')}_violin.png"
     )
-    plt.savefig(out_path, format="eps", dpi=1200)
+    plt.savefig(out_path, format="png", dpi=1200)
     plt.close(fig)
     print(f"Saved violin plot to {out_path}")
 
 
 def shannon(mat):
     # input n*p
+    mat = mat.T
     proportions = mat / (mat.sum(axis=1, keepdims=True) + EPS)
+    # pdb.set_trace()
     # replace 0s and nans with 1
     proportions = np.where(proportions > 0, proportions, 1)  # avoid log(0)
     return -np.sum(proportions * np.log(proportions), axis=1)
@@ -219,6 +233,7 @@ def shannon(mat):
 
 def richness(mat: np.ndarray, threshold: float = 0.0) -> np.ndarray:
     # mat > threshold gives a boolean array; sum over features axis; input n*p
+    mat= mat.T  
     return np.sum(mat > threshold, axis=1)
 
 

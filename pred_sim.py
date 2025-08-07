@@ -8,7 +8,7 @@ for 50 repeats (test_size=0.1), and report mean ± 95% CI of Accuracy, AUROC, Lo
 for each generative method: VAE, IWAE, diffusion.
 
 Usage:
-python pred_sim.py --input_dir ./output --repeats 100 --test_size 0.1
+python pred_sim.py --input_dir ./output --repeats 100 --test_size 0.2
 """
 import argparse
 import os
@@ -19,6 +19,7 @@ from sklearn.preprocessing import StandardScaler, label_binarize
 from sklearn.model_selection import train_test_split
 from sklearn.neural_network import MLPClassifier
 from sklearn.metrics import accuracy_score, log_loss, roc_auc_score
+from sklearn.linear_model import LogisticRegression
 from utils import ci95
 
 METHODS = ["VAE", "IWAE", "diffusion"]
@@ -50,8 +51,32 @@ def load_simulated(input_dir, method):
     return X, y
 
 
+# helper to compute entropy; default base 2 so result is in bits
+def entropy(probs, base=2):
+    eps = 1e-12
+    probs = np.clip(probs, eps, 1.0)
+    h = -np.sum(probs * np.log(probs), axis=-1)  # natural log
+    if base != np.e:
+        h = h / np.log(base)
+    return h
+
+
 def run_pipeline(X, y, test_size, repeats):
-    accs, aurocs, ces = [], [], []
+    # We'll evaluate two classifiers: nonlinear MLP and linear logistic regression
+    classifier_constructors = {
+        "MLP": lambda: MLPClassifier(
+            hidden_layer_sizes=(100,),
+            activation="relu",
+            solver="adam",
+            max_iter=2000,
+            batch_size=16,
+        ),
+        "Linear": lambda: LogisticRegression(multi_class="multinomial", solver="lbfgs", max_iter=2000),
+    }
+
+    inter_entropies = {name: [] for name in classifier_constructors}
+    intra_entropies = {name: [] for name in classifier_constructors}
+
     for _ in range(repeats):
         X_tr, X_te, y_tr, y_te = train_test_split(X, y, test_size=test_size, stratify=y)
         scaler = StandardScaler().fit(X_tr)
@@ -61,28 +86,34 @@ def run_pipeline(X, y, test_size, repeats):
         X_tr_k = kpca.fit_transform(X_tr_s)
         X_te_k = kpca.transform(X_te_s)
 
-        mlp = MLPClassifier(
-            hidden_layer_sizes=(100,),
-            activation="relu",
-            solver="adam",
-            max_iter=2000,
-            batch_size=16,
-        )
-        mlp.fit(X_tr_k, y_tr)
+        for name, ctor in classifier_constructors.items():
+            clf = ctor()
+            # fit and get probabilities
+            clf.fit(X_tr_k, y_tr)
+            if hasattr(clf, "predict_proba"):
+                y_proba = clf.predict_proba(X_te_k)
+            else:
+                # fallback: use decision function and softmax manually
+                logits = clf.decision_function(X_te_k)
+                exp = np.exp(logits - np.max(logits, axis=1, keepdims=True))
+                y_proba = exp / np.sum(exp, axis=1, keepdims=True)
 
-        y_pred = mlp.predict(X_te_k)
-        y_proba = mlp.predict_proba(X_te_k)
+            # Intra-entropy: average entropy of p(y|x)
+            ent_per_sample = entropy(y_proba, base=2)
+            intra = np.mean(ent_per_sample)
 
-        acc = accuracy_score(y_te, y_pred)
-        ce = log_loss(y_te, y_proba)
-        y_te_bin = label_binarize(y_te, classes=mlp.classes_)
-        auroc = roc_auc_score(y_te_bin, y_proba, average="macro", multi_class="ovr")
+            # Inter-entropy: entropy of marginal p(y)
+            p_y = np.mean(y_proba, axis=0)
+            inter = entropy(p_y, base=2)
 
-        accs.append(acc)
-        ces.append(ce)
-        aurocs.append(auroc)
+            intra_entropies[name].append(intra)
+            inter_entropies[name].append(inter)
 
-    return ci95(accs), ci95(aurocs), ci95(ces)
+    # Build result dict: {classifier: ((inter_m, lo, hi), (intra_m, lo, hi))}
+    results = {}
+    for name in classifier_constructors:
+        results[name] = (ci95(inter_entropies[name]), ci95(intra_entropies[name]))
+    return results
 
 
 def main():
@@ -100,14 +131,13 @@ def main():
 
     for method in METHODS:
         X, y = load_simulated(args.input_dir, method)
-        (acc_m, acc_lo, acc_hi), (auc_m, auc_lo, auc_hi), (ce_m, ce_lo, ce_hi) = (
-            run_pipeline(X, y, args.test_size, args.repeats)
-        )
+        results = run_pipeline(X, y, args.test_size, args.repeats)
 
         print(f"\n=== Method: {method} ===")
-        print(f"Accuracy     : {acc_m:.4f} (95% CI: {acc_lo:.4f}–{acc_hi:.4f})")
-        print(f"Log‐Loss     : {ce_m:.4f} (95% CI: {ce_lo:.4f}–{ce_hi:.4f})")
-        print(f"AUROC (macro): {auc_m:.4f} (95% CI: {auc_lo:.4f}–{auc_hi:.4f})")
+        for clf_name, ((inter_m, inter_lo, inter_hi), (intra_m, intra_lo, intra_hi)) in results.items():
+            print(f"  -- Classifier: {clf_name} --")
+            print(f"  Inter-Entropy (diversity) : {inter_m:.4f} (95% CI: {inter_lo:.4f}–{inter_hi:.4f})")
+            print(f"  Intra-Entropy (confidence): {intra_m:.4f} (95% CI: {intra_lo:.4f}–{intra_hi:.4f})")
 
 
 if __name__ == "__main__":

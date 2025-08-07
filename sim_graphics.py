@@ -11,6 +11,7 @@ from models.kde_mcmc import kde_sampling
 from models.vae import VAE, train as train_vae
 from models.iwae import IWAE, train as train_iwae
 from models.diffusion import DiffusionModel, train as train_diffusion
+from models.ldm import LDM, train as train_ldm
 
 import pdb
 
@@ -21,13 +22,14 @@ warnings.filterwarnings("ignore")  # Ignore all warnings
 # --------------------
 # Configuration
 # --------------------
-latent_dim = 16  # 8, 16
+latent_dim = 8  # 8, 16
 hidden_dim = 128  # 64, 128
 num_epochs = 300
 batch_size = 128
-learning_rate = 1e-3
+learning_rate = 0.001
 K = 20
 random_seed = 42
+timesteps = 3000
 
 torch.manual_seed(random_seed)
 np.random.seed(random_seed)
@@ -86,16 +88,16 @@ def process_file(filepath: str):
     # save_generated_samples(gen_vae, "VAE", dataset_name)
     # vae_end_time = time.perf_counter()
     # print(f"VAE running time: {vae_end_time - vae_start_time:.4f} seconds")
-    # gen_vae_path = f"./output/{dataset_name}_VAE_samples.npy"
-    # if os.path.exists(gen_vae_path):
-    #     gen_vae = np.load(gen_vae_path)
+    gen_vae_path = f"./output/{dataset_name}_VAE_samples.npy"
+    if os.path.exists(gen_vae_path):
+        gen_vae = np.load(gen_vae_path)
     # plot_pca(data, gen_vae, "VAE", dataset_name)
     # plot_tsne(data, gen_vae, "VAE", dataset_name)
     # plot_umap(data, gen_vae, "VAE", dataset_name)
 
     # ----- IWAE -----
     # iwae_start_time = time.perf_counter()
-    # iwae = IWAE(input_dim, latent_dim, hidden_dim, K).to(device)
+    # iwae = IWAE(input_dim, hidden_dim, latent_dim, K).to(device)
     # opt_iwae = optim.Adam(iwae.parameters(), lr=learning_rate)
     # train_iwae(iwae, loader, opt_iwae, num_epochs=num_epochs, device=device)
     # iwae.eval()
@@ -110,8 +112,9 @@ def process_file(filepath: str):
     gen_iwae_path = f"./output/{dataset_name}_IWAE_samples.npy"
     if os.path.exists(gen_iwae_path):
         gen_iwae = np.load(gen_iwae_path)
-    plot_pca(data, gen_iwae, "IWAE", dataset_name)
-    plot_tsne(data, gen_iwae, "IWAE", dataset_name)
+    # plot_pca(data, gen_iwae, "IWAE", dataset_name)
+    # plot_tsne(data, gen_iwae, "IWAE", dataset_name)
+    # plot_umap(data, gen_iwae, "IWAE", dataset_name)
 
     # ----- Diffusion -----
     # diff_start_time = time.perf_counter()
@@ -125,11 +128,12 @@ def process_file(filepath: str):
     # diff_end_time = time.perf_counter()
     # print(f"Diffusion running time: {diff_end_time - diff_start_time:.4f} seconds")
 
-    # gen_diff_path = f"./output/{dataset_name}_diffusion_samples.npy"
-    # if os.path.exists(gen_diff_path):
-    #     gen_diff = np.load(gen_diff_path)
-    #     plot_pca(data, gen_diff, "diffusion", dataset_name)
-    #     plot_tsne(data, gen_diff, "diffusion", dataset_name)
+    gen_diff_path = f"./output/{dataset_name}_diffusion_samples.npy"
+    if os.path.exists(gen_diff_path):
+        gen_diff = np.load(gen_diff_path)
+        # plot_pca(data, gen_diff, "diffusion", dataset_name)
+        # plot_tsne(data, gen_diff, "diffusion", dataset_name)
+        # plot_umap(data, gen_diff, "diffusion", dataset_name)
 
     # ----- KDE -----
     # if input_dim <= 10:
@@ -145,30 +149,45 @@ def process_file(filepath: str):
     # gen_kde_path = f"./output/{dataset_name}_KDE_samples.npy"
     # if os.path.exists(gen_kde_path):
     #     gen_kde = np.load(gen_kde_path)
-    #     plot_pca(data, gen_kde, "KDE", dataset_name)
-    #     plot_tsne(data, gen_kde, "KDE", dataset_name)
+        # plot_pca(data, gen_kde, "KDE", dataset_name)
+        # plot_tsne(data, gen_kde, "KDE", dataset_name)
+        # plot_umap(data, gen_kde, "KDE", dataset_name)
 
     # ----- MIDASim -----
-    gen_ms_path = f"./output/{dataset_name}_MS_samples.npy"
-    if os.path.exists(gen_ms_path):
-        gen_ms = np.load(gen_ms_path)
-        plot_pca(data, gen_ms, "MS", dataset_name)
-        plot_tsne(data, gen_ms, "MS", dataset_name)
+    # gen_ms_path = f"./output/{dataset_name}_MS_samples.npy"
+    # if os.path.exists(gen_ms_path):
+    #     gen_ms = np.load(gen_ms_path)
+        # plot_pca(data, gen_ms, "MS", dataset_name)
+        # plot_tsne(data, gen_ms, "MS", dataset_name)
+        # plot_umap(data, gen_ms, "MS", dataset_name)
 
     # ----- alpha-diversity -----
 
     # NOTE shannon diversity can't compute negative values so it's not included in the analysis
-    # H_orig = shannon(data)
-    # pdb.set_trace()
-    # H_vae = shannon(gen_vae)
-    # H_iwae = shannon(gen_iwae)
-    # H_diff = shannon(gen_diff)
+    H_orig = shannon(data)
+    H_vae = shannon(gen_vae)
+    H_iwae = shannon(gen_iwae)
+    H_diff = shannon(gen_diff)
     # H_kde = shannon(gen_kde)
     # H_ms = shannon(gen_ms)
 
+    plot_violin(
+        [H_orig, H_vae, H_iwae],
+        ["Original", "VAE", "IWAE"],
+        "shannon entropy",
+        dataset_name,
+    )
+
     # plot_violin(
-    #     [H_orig, H_vae, H_iwae],
-    #     ["Original", "VAE", "IWAE"],
+    #     [H_orig, H_vae, H_iwae, H_diff],
+    #     ["Original", "VAE", "IWAE", "Diffusion"],
+    #     "shannon entropy",
+    #     dataset_name,
+    # )
+
+    # plot_violin(
+    #     [H_orig, H_kde, H_vae, H_iwae, H_diff],
+    #     ["Original", "KDE", "VAE", "IWAE", "Diffusion"],
     #     "shannon entropy",
     #     dataset_name,
     # )
@@ -188,36 +207,36 @@ def process_file(filepath: str):
     # )
 
     # plot_violin(
-    #     [H_orig, H_vae, H_iwae, H_diff],
-    #     ["Original", "VAE", "IWAE", "Diffusion"],
-    #     "shannon entropy",
-    #     dataset_name,
-    # )
-
-    # plot_violin(
     #     [H_orig, H_kde, H_diff],
     #     ["Original", "KDE", "Diffusion"],
     #     "shannon entropy",
     #     dataset_name,
     # )
 
-    # rich_orig = richness(data)
-    # rich_vae = richness(gen_vae)
-    # rich_iwae = richness(gen_iwae)
-    # rich_diff = richness(gen_diff)
+    rich_orig = richness(data)
+    rich_vae = richness(gen_vae)
+    rich_iwae = richness(gen_iwae)
+    rich_diff = richness(gen_diff)
     # rich_kde = richness(gen_kde)
     # rich_ms = richness(gen_ms)
 
+    plot_violin(
+        [rich_orig, rich_vae, rich_iwae],
+        ["Original", "VAE", "IWAE"],
+        "richness",
+        dataset_name,
+    )
+
     # plot_violin(
-    #     [rich_orig, rich_vae, rich_iwae],
-    #     ["Original", "VAE", "IWAE"],
+    #     [rich_orig, rich_vae, rich_iwae, rich_ms],
+    #     ["Original", "VAE", "IWAE", "MS"],
     #     "richness",
     #     dataset_name,
     # )
 
     # plot_violin(
-    #     [rich_orig, rich_vae, rich_iwae, rich_ms],
-    #     ["Original", "VAE", "IWAE", "MS"],
+    #     [rich_orig, rich_kde, rich_vae, rich_iwae, rich_diff],
+    #     ["Original", "KDE", "VAE", "IWAE", "Diffusion"],
     #     "richness",
     #     dataset_name,
     # )
@@ -294,15 +313,15 @@ def process_file(filepath: str):
 if __name__ == "__main__":
     os.makedirs("./output", exist_ok=True)
 
-    process_file("./input/ibd.csv")
-    process_file("./input/momspi16s.csv")
-    # process_file("./input/TCGA_HNSC_rawcount_data_t.csv")
+    # process_file("./input/ibd.csv")
+    # process_file("./input/momspi16s.csv")
+    process_file("./input/TCGA_HNSC_rawcount_data_t.csv")
     # process_file("./input/gene_MTB_healthy_cleaned_t.csv")
     # process_file("./input/gene_MTB_caries_cleaned_t.csv")
     # process_file("./input/gene_MTB_periodontitis_cleaned_t.csv")
     # process_file("./input/gene_MGB_periodontitis_transposed.csv")
     # process_file("./input/gene_MGB_caries_transposed.csv")
     # process_file("./input/gene_MGB_healthy_transposed.csv")
-    # process_file("./input/GSE165512_CD.csv")
-    # process_file("./input/GSE165512_Control.csv")
-    # process_file("./input/GSE165512_UC.csv")
+    process_file("./input/GSE165512_CD.csv")
+    process_file("./input/GSE165512_Control.csv")
+    process_file("./input/GSE165512_UC.csv")

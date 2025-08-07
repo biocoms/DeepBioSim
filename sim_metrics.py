@@ -28,41 +28,41 @@ def process_file(filepath: str):
     orig_jac = jaccard_matrix(data)
     triu = np.triu_indices(orig_bc.shape[0], k=1)
 
-    # gen_vae_path = f"./output/{dataset_name}_VAE_samples.npy"
-    # if os.path.exists(gen_vae_path):
-    #     gen_vae = np.load(gen_vae_path)
-    #     gen_vae = np.expm1(gen_vae).T  # n*p
-    #     # Pearson Correlation Coefficient for shannon and richness
-    #     H_vae = shannon(gen_vae)
-    #     H_pearson = pearson_corr(H_orig, H_vae)
-    #     print(f"Shannon Pearson (VAE): {H_pearson:.4f}")
-    #     rich_vae = richness(gen_vae)
-    #     rich_pearson = pearson_corr(rich_orig, rich_vae)
-    #     print(f"Richness Pearson (VAE): {rich_pearson:.4f}")
-    #     # Pearson Correlation Coefficient comparison for Bray-Curtis and Jaccard indices
-    #     gen_vae_bc = bc_matrix(gen_vae.astype(float))
-    #     bc_pearson = pearson_corr(orig_bc[triu], gen_vae_bc[triu])
-    #     print(f"BC Pearson (VAE): {bc_pearson:.4f}")
-    #     gen_vae_jac = jaccard_matrix(gen_vae)
-    #     jac_pearson = pearson_corr(orig_jac[triu], gen_vae_jac[triu])
-    #     print(f"Jaccard Pearson (VAE): {jac_pearson:.4f}")
+    gen_vae_path = f"./output/{dataset_name}_VAE_samples.npy"
+    if os.path.exists(gen_vae_path):
+        gen_vae = np.load(gen_vae_path)
+        gen_vae = np.expm1(gen_vae).T  # n*p
+        # Pearson Correlation Coefficient for shannon and richness
+        H_vae = shannon(gen_vae)
+        H_pearson = pearson_corr(H_orig, H_vae)
+        print(f"Shannon Pearson (VAE): {H_pearson:.4f}")
+        rich_vae = richness(gen_vae)
+        rich_pearson = pearson_corr(rich_orig, rich_vae)
+        print(f"Richness Pearson (VAE): {rich_pearson:.4f}")
+        # Pearson Correlation Coefficient comparison for Bray-Curtis and Jaccard indices
+        gen_vae_bc = bc_matrix(gen_vae.astype(float))
+        bc_pearson = pearson_corr(orig_bc[triu], gen_vae_bc[triu])
+        print(f"BC Pearson (VAE): {bc_pearson:.4f}")
+        gen_vae_jac = jaccard_matrix(gen_vae)
+        jac_pearson = pearson_corr(orig_jac[triu], gen_vae_jac[triu])
+        print(f"Jaccard Pearson (VAE): {jac_pearson:.4f}")
 
-    # gen_iwae_path = f"./output/{dataset_name}_IWAE_samples.npy"
-    # if os.path.exists(gen_iwae_path):
-    #     gen_iwae = np.load(gen_iwae_path)
-    #     gen_iwae = np.expm1(gen_iwae).T  # n*p
-    #     H_iwae = shannon(gen_iwae)
-    #     H_pearson = pearson_corr(H_orig, H_iwae)
-    #     print(f"Shannon Pearson (IWAE): {H_pearson:.4f}")
-    #     rich_iwae = richness(gen_iwae)
-    #     rich_pearson = pearson_corr(rich_orig, rich_iwae)
-    #     print(f"Richness Pearson (IWAE): {rich_pearson:.4f}")
-    #     gen_iwae_bc = bc_matrix(gen_iwae.astype(float))
-    #     bc_pearson = pearson_corr(orig_bc[triu], gen_iwae_bc[triu])
-    #     print(f"BC Pearson (IWAE): {bc_pearson:.4f}")
-    #     gen_iwae_jac = jaccard_matrix(gen_iwae)
-    #     jac_pearson = pearson_corr(orig_jac[triu], gen_iwae_jac[triu])
-    #     print(f"Jaccard Pearson (IWAE): {jac_pearson:.4f}")
+    gen_iwae_path = f"./output/{dataset_name}_IWAE_samples.npy"
+    if os.path.exists(gen_iwae_path):
+        gen_iwae = np.load(gen_iwae_path)
+        gen_iwae = np.expm1(gen_iwae).T  # n*p
+        H_iwae = shannon(gen_iwae)
+        H_pearson = pearson_corr(H_orig, H_iwae)
+        print(f"Shannon Pearson (IWAE): {H_pearson:.4f}")
+        rich_iwae = richness(gen_iwae)
+        rich_pearson = pearson_corr(rich_orig, rich_iwae)
+        print(f"Richness Pearson (IWAE): {rich_pearson:.4f}")
+        gen_iwae_bc = bc_matrix(gen_iwae.astype(float))
+        bc_pearson = pearson_corr(orig_bc[triu], gen_iwae_bc[triu])
+        print(f"BC Pearson (IWAE): {bc_pearson:.4f}")
+        gen_iwae_jac = jaccard_matrix(gen_iwae)
+        jac_pearson = pearson_corr(orig_jac[triu], gen_iwae_jac[triu])
+        print(f"Jaccard Pearson (IWAE): {jac_pearson:.4f}")
 
     gen_diff_path = f"./output/{dataset_name}_diffusion_samples.npy"
     if os.path.exists(gen_diff_path):
@@ -81,22 +81,22 @@ def process_file(filepath: str):
         jac_pearson = pearson_corr(orig_jac[triu], gen_diff_jac[triu])
         print(f"Jaccard Pearson (Diffusion): {jac_pearson:.4f}")
 
-    gen_kde_path = f"./output/{dataset_name}_KDE_samples.npy"
-    if os.path.exists(gen_kde_path):
-        gen_kde = np.load(gen_kde_path)
-        gen_kde = np.expm1(gen_kde).T  # n*p
-        H_kde = shannon(gen_kde)
-        H_pearson = pearson_corr(H_orig, H_kde)
-        print(f"Shannon Pearson (KDE): {H_pearson:.4f}")
-        rich_kde = richness(gen_kde)
-        rich_pearson = pearson_corr(rich_orig, rich_kde)
-        print(f"Richness Pearson (KDE): {rich_pearson:.4f}")
-        gen_kde_bc = bc_matrix(gen_kde.astype(float))
-        bc_pearson = pearson_corr(orig_bc[triu], gen_kde_bc[triu])
-        print(f"BC Pearson (KDE): {bc_pearson:.4f}")
-        gen_kde_jac = jaccard_matrix(gen_kde)
-        jac_pearson = pearson_corr(orig_jac[triu], gen_kde_jac[triu])
-        print(f"Jaccard Pearson (KDE): {jac_pearson:.4f}")
+    # gen_kde_path = f"./output/{dataset_name}_KDE_samples.npy"
+    # if os.path.exists(gen_kde_path):
+    #     gen_kde = np.load(gen_kde_path)
+    #     gen_kde = np.expm1(gen_kde).T  # n*p
+    #     H_kde = shannon(gen_kde)
+    #     H_pearson = pearson_corr(H_orig, H_kde)
+    #     print(f"Shannon Pearson (KDE): {H_pearson:.4f}")
+    #     rich_kde = richness(gen_kde)
+    #     rich_pearson = pearson_corr(rich_orig, rich_kde)
+    #     print(f"Richness Pearson (KDE): {rich_pearson:.4f}")
+    #     gen_kde_bc = bc_matrix(gen_kde.astype(float))
+    #     bc_pearson = pearson_corr(orig_bc[triu], gen_kde_bc[triu])
+    #     print(f"BC Pearson (KDE): {bc_pearson:.4f}")
+    #     gen_kde_jac = jaccard_matrix(gen_kde)
+    #     jac_pearson = pearson_corr(orig_jac[triu], gen_kde_jac[triu])
+    #     print(f"Jaccard Pearson (KDE): {jac_pearson:.4f}")
 
     # gen_ms_path = f"./output/{dataset_name}_MS_samples.npy"
     # if os.path.exists(gen_ms_path):
@@ -118,8 +118,6 @@ def process_file(filepath: str):
     #     jac_pearson = pearson_corr(orig_jac[triu], gen_ms_jac[triu])
     #     print(f"Jaccard Pearson (MIDASim): {jac_pearson:.4f}")
 
-    # TODO: Classification AUROC/Accuracy using a simple classifier
-
 
 if __name__ == "__main__":
     os.makedirs("./output", exist_ok=True)
@@ -128,11 +126,11 @@ if __name__ == "__main__":
     # process_file("./input/momspi16s.csv")
     # process_file("./input/TCGA_HNSC_rawcount_data_t.csv")
     process_file("./input/gene_MTB_healthy_cleaned_t.csv")
-    process_file("./input/gene_MTB_caries_cleaned_t.csv")
-    process_file("./input/gene_MTB_periodontitis_cleaned_t.csv")
-    process_file("./input/gene_MGB_periodontitis_transposed.csv")
-    process_file("./input/gene_MGB_caries_transposed.csv")
-    process_file("./input/gene_MGB_healthy_transposed.csv")
+    # process_file("./input/gene_MTB_caries_cleaned_t.csv")
+    # process_file("./input/gene_MTB_periodontitis_cleaned_t.csv")
+    # process_file("./input/gene_MGB_periodontitis_transposed.csv")
+    # process_file("./input/gene_MGB_caries_transposed.csv")
+    # process_file("./input/gene_MGB_healthy_transposed.csv")
     # process_file("./input/GSE165512_CD.csv")
     # process_file("./input/GSE165512_Control.csv")
     # process_file("./input/GSE165512_UC.csv")

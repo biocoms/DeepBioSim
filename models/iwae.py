@@ -1,3 +1,5 @@
+# iwae.py
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -8,7 +10,7 @@ from sklearn.model_selection import KFold
 
 
 class IWAE(nn.Module):
-    def __init__(self, input_dim, latent_dim, hidden_dim, K=5):
+    def __init__(self, input_dim, hidden_dim, latent_dim, K=5):
         super().__init__()
         self.input_dim = input_dim
         self.latent_dim = latent_dim
@@ -81,7 +83,7 @@ class IWAE(nn.Module):
         iwae_loss = -(torch.logsumexp(log_w, dim=0) - np.log(self.K))
         return iwae_loss.mean()
 
-    def sample(self, n_samples):
+    def sample(self, n_samples, device="cpu"):
         z = torch.randn(
             n_samples, self.latent_dim, device=next(self.parameters()).device
         )

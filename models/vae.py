@@ -22,7 +22,7 @@ class VAE(nn.Module):
             latent_dim (int): Dimensionality of the latent space.
         """
         super(VAE, self).__init__()
-
+        self.latent_dim = latent_dim
         self.encoder = nn.Sequential(
             nn.Linear(input_dim, hidden_dim),
             nn.SiLU(),  # Swish activation function
@@ -119,6 +119,10 @@ class VAE(nn.Module):
         )
 
         return recon_x, mu, logvar, recon_loss, kl
+
+    def sample(self, n_samples, device):
+        z = torch.randn(n_samples, self.latent_dim, device=device)
+        return self.decode(z).cpu().numpy()
 
 
 # ---------------------------
