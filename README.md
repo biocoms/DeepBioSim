@@ -1,6 +1,5 @@
-# DeepBioSim
-
-Biological Count Data Simulation using Variational Autoencoders (VAEs)
+## DeepBioSim: Efficient and Versatile Methods for Microbiome Data Simulation with Minimal Statistical Assumptions
+https://doi.org/10.1101/2025.08.21.670443
 
 ## Quickstart
 ```pip install KDEpy tqdm torch torchvision numpy scikit-learn matplotlib pandas```
