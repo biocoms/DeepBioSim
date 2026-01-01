@@ -305,6 +305,8 @@ def match_columns(data: np.ndarray, gen: np.ndarray, mode: str = "mae") -> np.nd
         gen:  (n_samples, p) generated-data matrix
         mode: "mae"  → minimize mean absolute error per column
               "corr" → maximize Pearson r per column
+              "rank" → rank by squared-sum magnitude per column
+              "none" → direct index overlay (no matching)
 
     Returns:
         gen_reordered: (n_samples, p) same as gen but with columns permuted
@@ -312,6 +314,9 @@ def match_columns(data: np.ndarray, gen: np.ndarray, mode: str = "mae") -> np.nd
     n, p = data.shape
     if gen.shape != (n, p):
         raise ValueError("data and gen must have the same shape")
+
+    if mode == "none":
+        return gen
 
     if mode == "rank":
         # 1) compute squared-sum scores for original and generated features
@@ -352,7 +357,7 @@ def match_columns(data: np.ndarray, gen: np.ndarray, mode: str = "mae") -> np.nd
                     C[i, j] = -r
 
             else:
-                raise ValueError("mode must be 'mae' or 'corr'")
+                raise ValueError("mode must be 'mae', 'corr', 'rank', or 'None'")
 
     # catch any remaining nan or inf
     max_cost = np.nanmax(C[np.isfinite(C)])
