@@ -53,8 +53,8 @@ def main():
     )
     parser.add_argument(
         "--matching_method",
-        default="rank",
-        choices=["rank", "mae", "corr"],
+        default="none",
+        choices=["rank", "mae", "corr", "none"],
         help="Method for matching taxa/gene in generated data",
     )
     parser.add_argument(
@@ -188,7 +188,7 @@ def main():
 
     # Build DataFrame (features × samples)
     base_out = os.path.join(
-        args.output_folder, f"{dataset_name}_{args.simulation_method}"
+        args.output_folder, f"{dataset_name}_{args.simulation_method}_{args.matching_method}_seed{args.random_seed}"
     )
     # Save matched CSV
     match_file = base_out + ".csv"
